@@ -9,7 +9,7 @@
       "email": "justbe@microsoft.com"
     } 
   ],  
-  "main": "./server.js",
+  "main": "./web.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/MicrosoftWebMatrix/ExpressStarter.git"
