@@ -1,4 +1,6 @@
 node_modules
+uploads
+.c9revisions
 server.js.logs
 server.js.debug
 settings.json
