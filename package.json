@@ -5,11 +5,11 @@
   "description": "A complete boilerplate for building node applications on Windows Azure (or wherever)",
   "contributors": [ 
     {
-      "name": "Justin Beckwith",
-      "email": "justbe@microsoft.com"
+      "name": "me",
+      "email": "me"
     } 
   ],  
-  "main": "./web.js",
+  "main": "./server.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/MicrosoftWebMatrix/ExpressStarter.git"
@@ -33,6 +33,6 @@
   "noAnalyze": true,
   "license": "Apache",
   "engines": {
-    "node": "<=0.6.14"
+    "node": ">=0.6.14"
   }
 }

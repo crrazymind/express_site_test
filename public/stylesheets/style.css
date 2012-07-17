@@ -75,6 +75,19 @@ h4 {
 h5, h6 {
   font-size: 1em;
 }
+img{border-style:none;}
+a{text-decoration:none; color:#00f;}
+a:hover{text-decoration:underline;}
+input,
+textarea,
+select{
+	font:100% Arial, Helvetica, sans-serif;
+	vertical-align:middle;
+	color:#000;
+    margin: 0;
+    padding: 0;
+}
+
 /* main layout
 ----------------------------------------------------------*/
 .content-wrapper {
@@ -524,4 +537,23 @@ a.twitter {
     text-indent: 0;
     width: auto;
   }
+}
+/* Custom */
+
+.box label{
+    width: 100%;
+    display: block;
+    overflow: hidden;
+    position: relative;
+}
+.box{
+    width: 100%;
+    display: block;
+    overflow: hidden;
+    position: relative;
+    margin: 0 0 20px;
+}
+
+.message-info {
+    border: none;
 }

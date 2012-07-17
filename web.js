@@ -7,6 +7,7 @@
 
 var express = require('express')
   , less = require('less')
+  , fs = require('fs')
   , connect = require('connect')
   , everyauth = require('everyauth')
   , nconf = require('nconf')
@@ -42,7 +43,7 @@ var usersById = {},
 everyauth.
     everymodule.
     findUserById(function (id, callback) {
-	callback(null, usersById[id]);
+    callback(null, usersById[id]);
     });
 
 
@@ -59,11 +60,11 @@ everyauth.
 //    appId(nconf.get('facebook:applicationId')).
 //    appSecret(nconf.get('facebook:applicationSecret')).
 //    findOrCreateUser(
-//	function(session, accessToken, accessTokenExtra, fbUserMetadata){
-//	    return usersByFacebookId[fbUserMetadata.claimedIdentifier] || 
-//		(usersByFacebookId[fbUserMetadata.claimedIdentifier] = 
-//		 addUser('facebook', fbUserMetadata));
-//	}).
+//  function(session, accessToken, accessTokenExtra, fbUserMetadata){
+//      return usersByFacebookId[fbUserMetadata.claimedIdentifier] || 
+//      (usersByFacebookId[fbUserMetadata.claimedIdentifier] = 
+//       addUser('facebook', fbUserMetadata));
+//  }).
 //    redirectPath('/');
 
 
@@ -221,6 +222,8 @@ app.use(require('./middleware/errorHandler')(errorOptions));
 **/
 
 require('./routes/home')(app);
+require('./routes/upload')(app);
+require('./routes/mailer')(app);
 require('./routes/account')(app);
 
 // Global Routes - this should be last!
