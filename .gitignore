@@ -3,4 +3,6 @@ uploads
 .c9revisions
 server.js.logs
 server.js.debug
+web.js.logs
+web.js.debug
 settings.json
