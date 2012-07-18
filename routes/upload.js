@@ -1,27 +1,35 @@
 module.exports = function(app)
 {
     fs = require('fs');
-
+    everyauth = require('everyauth');
     nconf = require('nconf'),
     Recaptcha = require('recaptcha').Recaptcha;
+
+    function renderUploadView(req, res)
+    {
+        var recaptcha = new Recaptcha(nconf.get('recaptcha:publicKey'), nconf.get('recaptcha:privateKey'));
+        res.render('upload', {
+            title: 'Upload images here.',
+            recaptcha_upload: recaptcha.toHTML()
+        });
+    }
 
     // uploads page
     app.get('/upload', function(req, res)
     {
-        var recaptcha = new Recaptcha(nconf.get('recaptcha:publicKey'), nconf.get('recaptcha:privateKey'));
-        res.render('upload', {
-            title: 'Upload images here.',
-            recaptcha_upload: recaptcha.toHTML()
-        });
+        if(req.user)
+        {
+            renderUploadView(req, res);
+        } else
+        {
+            res.redirect('/login');
+        }
+
     });
 
     app.get('/upload_image', function(req, res)
     {
-        var recaptcha = new Recaptcha(nconf.get('recaptcha:publicKey'), nconf.get('recaptcha:privateKey'));
-        res.render('upload', {
-            title: 'Upload images here.',
-            recaptcha_upload: recaptcha.toHTML()
-        });
+        renderUploadView(req, res);
     });
 
     app.post('/upload_image', function(req, res)
@@ -56,12 +64,7 @@ module.exports = function(app)
             else
             {
                 // Redisplay the form.
-
-                var recaptcha = new Recaptcha(nconf.get('recaptcha:publicKey'), nconf.get('recaptcha:privateKey'));
-                res.render('upload', {
-                    title: 'Upload failed.',
-                    recaptcha_upload: recaptcha.toHTML()
-                });
+                renderUploadView(req, res);
             }
         });
     });
