@@ -4,16 +4,17 @@
 * -------------------------------------------------------------------------------------------------
 * include any modules you will use through out the file
 **/
-
+console.log('_____________________________________________________')
+console.log(new Date());
 var express = require('express')
   , less = require('less')
   , fs = require('fs')
   , connect = require('connect')
   , everyauth = require('everyauth')
   , nconf = require('nconf')
+  , sys = require('util')
+  , md5 = require('MD5')
   , Recaptcha = require('recaptcha').Recaptcha;
-
-
 /**
 * CONFIGURATION
 * -------------------------------------------------------------------------------------------------
@@ -39,6 +40,9 @@ var usersById = {},
     usersByLogin = {
         'admin@example.com': addUser({ email: 'admin@example.com', password: 'admin'})
     };
+
+
+
 
 everyauth.
     everymodule.
@@ -93,41 +97,58 @@ everyauth.
 * this section provides basic in-memory username and password authentication
 **/
 
-everyauth
+    everyauth
   .password
     .loginWith('email')
     .getLoginPath('/login')
     .postLoginPath('/login')
     .loginView('account/login')
-    .loginLocals(function(req, res, done) {
-        setTimeout(function() {
+    .loginLocals(function(req, res, done)
+    {
+        setTimeout(function()
+        {
             done(null, {
                 title: 'login.  '
             });
         }, 200);
     })
-    .authenticate(function(login, password) {
+    .authenticate(function(login, password)
+    {
+
+        console.log(login);
+        console.log(password);
         var errors = [];
         if(!login) errors.push('Missing login');
         if(!password) errors.push('Missing password');
         if(errors.length) return errors;
         var user = usersByLogin[login];
-        if(!user) return ['Login failed'];
-        if(user.password !== password) return ['Login failed'];
+        
+        
+        console.log('usersByLogin: ', usersByLogin);
+        console.log('user: ', user);
+
+
+        //if(!user) return ['Login failed'];
+        var dbcHeck = checkUser(usersList, login, password);
+        if(!dbcHeck) return ['Login failed'];
+        //if(user.password !== password) return ['Login failed'];
         return user;
     })
     .getRegisterPath('/register')
     .postRegisterPath('/register')
     .registerView('account/register')
-    .registerLocals(function(req, res, done) {
-        setTimeout(function() {
+    .registerLocals(function(req, res, done)
+    {
+        setTimeout(function()
+        {
             done(null, {
                 title: 'Register.  ',
                 recaptcha_form: (new Recaptcha(nconf.get('recaptcha:publicKey'), nconf.get('recaptcha:privateKey'))).toHTML()
             });
         }, 200);
     })
-    .extractExtraRegistrationParams(function(req) {
+    .extractExtraRegistrationParams(function(req)
+    {
         return {
             confirmPassword: req.body.confirmPassword,
             data: {
@@ -137,7 +158,8 @@ everyauth
             }
         }
     })
-    .validateRegistration(function(newUserAttrs, errors) {
+    .validateRegistration(function(newUserAttrs, errors)
+    {
         var login = newUserAttrs.login;
         var confirmPassword = newUserAttrs.confirmPassword;
         if(!confirmPassword) errors.push('Missing password confirmation')
@@ -146,14 +168,17 @@ everyauth
 
         // validate the recaptcha 
         var recaptcha = new Recaptcha(nconf.get('recaptcha:publicKey'), nconf.get('recaptcha:privateKey'), newUserAttrs.data);
-        recaptcha.verify(function(success, error_code) {
-            if(!success) {
-                errors.push('Invalid recaptcha - please try again');
-            }
-        });
+        /* recaptcha.verify(function(success, error_code) {
+        if(!success) {
+        errors.push('Invalid recaptcha - please try again');
+        }
+        });*/
+
+        //console.log('newUserAttrs: ', newUserAttrs);
         return errors;
     })
-    .registerUser(function(newUserAttrs) {
+    .registerUser(function(newUserAttrs)
+    {
         var login = newUserAttrs[this.loginKey()];
         return usersByLogin[login] = addUser(newUserAttrs);
     })
@@ -164,18 +189,32 @@ everyauth
 // would be the place to start
 function addUser (source, sourceUser) {
   var user;
-  if (arguments.length === 1) { 
+  if (arguments.length === 1) {
     user = sourceUser = source;
     user.id = ++nextUserId;
+    saveUserToDb(user);
     return usersById[nextUserId] = user;
   } else { // non-password-based
     user = usersById[++nextUserId] = {id: nextUserId};
     user[source] = sourceUser;
+    saveUserToDb(user);
   }
   return user;
 }
-
-
+function saveUserToDb(user){
+    if(dbConnection && user)
+    {
+        var salt = md5("!@#pwwd");
+        var dbUser = 
+        {
+            name : user.email,
+            id : user.id,
+            hash : salt,
+            pwd : md5(md5(user.password)+salt)
+        }
+        dbConnection.save('users', dbUser, resultHandler);
+    }
+}
 
 
 var app = module.exports = express.createServer();
@@ -185,6 +224,7 @@ var app = module.exports = express.createServer();
 * -------------------------------------------------------------------------------------------------
 * set up view engine (jade), css preprocessor (less), and any custom middleware (errorHandler)
 **/
+
 
 app.configure(function() {
     app.set('views', __dirname + '/views');
@@ -229,6 +269,68 @@ require('./routes/account')(app);
 // Global Routes - this should be last!
 require('./routes/global')(app);
 
+
+
+
+/* db connection */
+
+var dbConnector = require('./dbconnect').activeProvider;
+var dbConnection = new activeProvider('localhost', 27017);
+
+
+function resultHandler(err, res){
+    if(err){
+        console.log(err);
+    }else{
+        console.log(res);
+    }
+}
+var usersList;
+function saveUserHandler(err, res){
+    if(err){
+        console.log(err);
+    }else{
+        console.log('got from db:', res);
+        usersList = res;
+        updateUserStack(usersList);
+    }
+}
+
+function updateUserStack(usersList)
+{
+    for(var _i = 0; _i < usersList.length; _i++){
+        usersByLogin[usersList[_i].name] = addUser({ email: usersList[_i].name, password: usersList[_i].pwd, id: usersList[_i].id });
+    }
+}
+
+function checkUser(usersList, curr, pwd)
+{
+    if(usersList && curr && pwd){
+        for(var _i = 0; _i<usersList.length; _i++){
+          for(i in usersList[_i])
+            {
+                if(usersList[_i][i] == curr)
+                {
+                    console.log('match: ', usersList[_i]);
+                    console.log('match: ', usersList[_i].pwd);
+                    console.log('match: ', md5(md5(pwd) + usersList[_i].hash));
+                    if(usersList[_i].pwd == md5(md5(pwd) + usersList[_i].hash)){
+                        console.log('match: ', usersList[_i].pwd);
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }else
+    {
+        return false;
+    }
+}
+
+setTimeout(function(){
+    dbConnection.findUsers('users', '', saveUserHandler);
+},1000)
 
 
 /**
