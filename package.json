@@ -30,7 +30,7 @@
     "socket.io": ">= 0.8.7",
     "MD5" : "= 1.0.0",
     "connect": ">=1.8.5",
-    "mongodb": ">=1.0.2",
+    "mongoose": ">=2.7.2",
     "recaptcha": ">=1.1.0"
   },
   "noAnalyze": true,

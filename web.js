@@ -201,7 +201,9 @@ function addUser (source, sourceUser) {
   }
   return user;
 }
+
 function saveUserToDb(user){
+    return;
     if(dbConnection && user)
     {
         var salt = md5("!@#pwwd");
@@ -273,16 +275,25 @@ require('./routes/global')(app);
 
 
 /* db connection */
+var usersModel = require('./dbconnect').usersModel;
+usersModel.findItems({}, saveUserHandler);
 
-var dbConnector = require('./dbconnect').activeProvider;
-var dbConnection = new activeProvider('localhost', 27017);
 
+var datauser = 
+{
+    name : 'q@q.q',
+    pwd : 'password update',
+    hash : 'qweqwe'
+}
+
+console.log(usersModel);
+usersModel.saveSingleItem(datauser, resultHandler);
 
 function resultHandler(err, res){
     if(err){
         console.log(err);
     }else{
-        console.log(res);
+        console.log('resultHandler: ', res);
     }
 }
 var usersList;
@@ -290,9 +301,8 @@ function saveUserHandler(err, res){
     if(err){
         console.log(err);
     }else{
-        console.log('got from db:', res);
         usersList = res;
-        updateUserStack(usersList);
+        //updateUserStack(usersList);
     }
 }
 
@@ -327,11 +337,6 @@ function checkUser(usersList, curr, pwd)
         return false;
     }
 }
-
-setTimeout(function(){
-    dbConnection.findUsers('users', '', saveUserHandler);
-},1000)
-
 
 /**
 * CHAT / SOCKET.IO 

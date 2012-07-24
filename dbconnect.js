@@ -1,9 +1,60 @@
+var sys = require("util");
+var mongoose = require("mongoose"),
+	Schema = mongoose.Schema,
+	ObjectId = Schema.ObjectId;
+var dbConnection = mongoose.createConnection(nconf.get('mongo:url'));
+var usersSchema = new Schema({
+	name: String,
+	hash: String,
+	pwd: String
+});
+var usersModel = dbConnection.model('users', usersSchema);
 
+usersModel.findItems = function (query, callback) {
+	this.find(query, callback);
+}
+usersModel.saveSingleItem = function(data, callback)
+{
+    if(data.name)
+    {
+        console.log('name passed to: ', data.name);
+        var model = this;
+        this.find({ 'name': data.name }, function(err, data)
+        {
+            if(err) callback('unknown error on find matches step inside save method')
 
-    var sys = require("util");
-    var mongodb = require("mongodb");
+            if(data.length > 0)
+            {
+                console.log('to update ');
+                var update = { $inc: { pwd: data.pwd }}
+                model.update({ 'name': data.name }, update, { multi: true }, function(err, numbers)
+                {
+                    if(err) callback(err);
+                    callback(null, numbers + ' updated in db');
+                });
+            }
+            else
+            {
+                console.log('to save');
+            }
+        });
+    }
+    else
+    {
+        callback('unknown data in query');
+    }
+}
+exports.usersModel = usersModel;
+/*
+ this.find({ 'name': 'q@q.q' }, function(err, docs)
+        {
+            if(err) console.log(err);
 
-    var Db = mongodb.Db;
+            console.log(docs.length);
+        });
+
+*/
+/*    var Db = mongodb.Db;
     var Connection = mongodb.Connection;
     var Server = mongodb.Server;
     var BSON = mongodb.BSON;
@@ -77,3 +128,4 @@
 
     exports.activeProvider = activeProvider;
 
+    */
