@@ -276,18 +276,13 @@ require('./routes/global')(app);
 
 /* db connection */
 var usersModel = require('./dbconnect').usersModel;
+
 usersModel.findItems({}, saveUserHandler);
 
 
-var datauser = 
-{
-    name : 'q@q.q',
-    pwd : 'password update',
-    hash : 'qweqwe'
-}
+var datauser = {"name" : "ololo@q.q","pwd" : "52b87702a857139cef9acc3e3bb6fb60", "salt" : "5244e472bdd9aa365d8f7eabb14b1a98","id" : 10}
 
-console.log(usersModel);
-usersModel.saveSingleItem(datauser, resultHandler);
+usersModel.saveItem(datauser, resultHandler);
 
 function resultHandler(err, res){
     if(err){
@@ -302,6 +297,7 @@ function saveUserHandler(err, res){
         console.log(err);
     }else{
         usersList = res;
+        //console.log('connection test: ', res);
         //updateUserStack(usersList);
     }
 }

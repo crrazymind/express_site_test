@@ -2,31 +2,85 @@ var sys = require("util");
 var mongoose = require("mongoose"),
 	Schema = mongoose.Schema,
 	ObjectId = Schema.ObjectId;
+
 var dbConnection = mongoose.createConnection(nconf.get('mongo:url'));
+
+function validatePresenceOf(value) {
+  return value && value.length;
+}
+
+var UsersSchema = new Schema({
+    'name': { type: String, validate: [validatePresenceOf, 'an email is required'], index: { unique: true } },
+    'pwd': String,
+    'salt': String,
+    'id' : Number
+});
+
+var usersModelCons = dbConnection.model('users', UsersSchema);
+
+
+    UsersSchema.pre('save', function(next) {
+        next();
+    });
+
+    var userModel = function(){
+        this.model = usersModelCons;
+
+        this.findItems = function(query, callback){
+            this.model.find(query, callback);
+        };
+
+        this.saveItem = function(data, callback){
+            console.log(data);
+            var user = new Schema(data);
+            if(user){
+                user.save(function(err){
+                if(err){
+                        callback('save failed');
+                        return;
+                    }
+
+                });
+            }else{
+                callback('wrong data');
+            }
+
+        }
+    }
+
+exports.usersModel = new userModel;
+
+
+/*
+
 var usersSchema = new Schema({
 	name: String,
 	hash: String,
 	pwd: String
 });
-var usersModel = dbConnection.model('users', usersSchema);
+
+var usersModelCons = dbConnection.model('users', usersSchema);
+var usersModel = new usersModelCons();
+
 
 usersModel.findItems = function (query, callback) {
-	this.find(query, callback);
+	usersModelCons.find(query, callback);
 }
 usersModel.saveSingleItem = function(data, callback)
 {
     if(data.name)
     {
         console.log('name passed to: ', data.name);
-        var model = this;
-        this.find({ 'name': data.name }, function(err, data)
+        var model = usersModelCons;
+        model.find({ 'name': data.name }, function(err, data)
         {
             if(err) callback('unknown error on find matches step inside save method')
 
             if(data.length > 0)
             {
                 console.log('to update ');
-                var update = { $inc: { pwd: data.pwd }}
+                //var update = { $inc: { pwd: data.pwd} };
+                var update = { $inc: { visits: 1} };
                 model.update({ 'name': data.name }, update, { multi: true }, function(err, numbers)
                 {
                     if(err) callback(err);
@@ -35,7 +89,12 @@ usersModel.saveSingleItem = function(data, callback)
             }
             else
             {
-                console.log('to save');
+                console.log(model);
+                model.insert(data, function(err, numbers)
+                {
+                    if(err) callback(err);
+                    callback(null, numbers + ' updated in db');
+                });
             }
         });
     }
