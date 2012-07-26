@@ -14,6 +14,7 @@ var express = require('express')
   , nconf = require('nconf')
   , sys = require('util')
   , md5 = require('MD5')
+  , mongoose = require("mongoose")
   , Recaptcha = require('recaptcha').Recaptcha;
 /**
 * CONFIGURATION
@@ -38,7 +39,7 @@ var usersById = {},
     usersByFacebookId = {},
     usersByTwitId = {},
     usersByLogin = {
-        'admin@example.com': addUser({ email: 'admin@example.com', password: 'admin'})
+        'admin@example.com': addStackUser({ email: 'admin@example.com', password: 'admin'})
     };
 
 
@@ -124,7 +125,6 @@ everyauth.
         var user = usersByLogin[login];
         
         
-        console.log('usersByLogin: ', usersByLogin);
         console.log('user: ', user);
 
 
@@ -160,33 +160,36 @@ everyauth.
     })
     .validateRegistration(function(newUserAttrs, errors)
     {
-        var login = newUserAttrs.login;
+        var login = newUserAttrs.email;
         var confirmPassword = newUserAttrs.confirmPassword;
         if(!confirmPassword) errors.push('Missing password confirmation')
         if(newUserAttrs.password != confirmPassword) errors.push('Passwords must match');
-        if(usersByLogin[login]) errors.push('Login already taken');
+        if(usersByLogin[login]) {
+            console.log('login: ',login);
+            console.log('usersByLogin: ',usersByLogin);
+            errors.push('Login already taken');
+        }
 
         // validate the recaptcha 
         var recaptcha = new Recaptcha(nconf.get('recaptcha:publicKey'), nconf.get('recaptcha:privateKey'), newUserAttrs.data);
-        /* recaptcha.verify(function(success, error_code) {
-        if(!success) {
-        errors.push('Invalid recaptcha - please try again');
-        }
-        });*/
-
-        //console.log('newUserAttrs: ', newUserAttrs);
+            recaptcha.verify(function(success, error_code) {
+            if(!success) {
+                errors.push('Invalid recaptcha - please try again');
+            }
+        });
         return errors;
     })
     .registerUser(function(newUserAttrs)
     {
         var login = newUserAttrs[this.loginKey()];
+        addUser(newUserAttrs);
         return usersByLogin[login] = addUser(newUserAttrs);
     })
     .loginSuccessRedirect('/')
     .registerSuccessRedirect('/');
 
-// add a user to the in memory store of users.  If you were looking to use a persistent store, this
-// would be the place to start
+
+// add a user to the db and in memory stack
 function addUser (source, sourceUser) {
   var user;
   if (arguments.length === 1) {
@@ -201,20 +204,31 @@ function addUser (source, sourceUser) {
   }
   return user;
 }
-
+// add a user to the in memory store of users.
+function addStackUser (source, sourceUser) {
+  var user;
+  if (arguments.length === 1) {
+    user = sourceUser = source;
+    user.id = ++nextUserId;
+    return usersById[nextUserId] = user;
+  } else { // non-password-based
+    user = usersById[++nextUserId] = {id: nextUserId};
+    user[source] = sourceUser;
+  }
+  return user;
+}
 function saveUserToDb(user){
-    return;
-    if(dbConnection && user)
-    {
-        var salt = md5("!@#pwwd");
+
+    if(usersModel && user){
+        var salt = md5(new Date().getTime());
         var dbUser = 
         {
             name : user.email,
             id : user.id,
-            hash : salt,
+            salt : salt,
             pwd : md5(md5(user.password)+salt)
         }
-        dbConnection.save('users', dbUser, resultHandler);
+        usersModel.saveItem(dbUser,resultHandler);
     }
 }
 
@@ -276,19 +290,17 @@ require('./routes/global')(app);
 
 /* db connection */
 var usersModel = require('./dbconnect').usersModel;
-
+var User = app.User = mongoose.model('users');
 usersModel.findItems({}, saveUserHandler);
 
+var datauser = {"name" : "ololo-"+ (new Date().getTime())+"@q.q","pwd" : "52b87702a857139cef9acc3e3bb6fb60", "salt" : "5244e472bdd9aa365d8f7eabb14b1a98","id" : 10}
 
-var datauser = {"name" : "ololo@q.q","pwd" : "52b87702a857139cef9acc3e3bb6fb60", "salt" : "5244e472bdd9aa365d8f7eabb14b1a98","id" : 10}
-
-usersModel.saveItem(datauser, resultHandler);
 
 function resultHandler(err, res){
     if(err){
         console.log(err);
     }else{
-        console.log('resultHandler: ', res);
+        usersModel.findItems({}, saveUserHandler);
     }
 }
 var usersList;
@@ -297,16 +309,17 @@ function saveUserHandler(err, res){
         console.log(err);
     }else{
         usersList = res;
-        //console.log('connection test: ', res);
-        //updateUserStack(usersList);
+        updateUserStack(usersList);
+        // console.log('connection test: ', res);
     }
 }
 
 function updateUserStack(usersList)
 {
     for(var _i = 0; _i < usersList.length; _i++){
-        usersByLogin[usersList[_i].name] = addUser({ email: usersList[_i].name, password: usersList[_i].pwd, id: usersList[_i].id });
+        usersByLogin[usersList[_i].name] = addStackUser({ email: usersList[_i].name, password: usersList[_i].pwd, id: usersList[_i].id });
     }
+    console.log('usersStack updated: ', usersByLogin);
 }
 
 function checkUser(usersList, curr, pwd)
@@ -319,8 +332,8 @@ function checkUser(usersList, curr, pwd)
                 {
                     console.log('match: ', usersList[_i]);
                     console.log('match: ', usersList[_i].pwd);
-                    console.log('match: ', md5(md5(pwd) + usersList[_i].hash));
-                    if(usersList[_i].pwd == md5(md5(pwd) + usersList[_i].hash)){
+                    console.log('match: ', md5(md5(pwd) + usersList[_i].salt));
+                    if(usersList[_i].pwd == md5(md5(pwd) + usersList[_i].salt)){
                         console.log('match: ', usersList[_i].pwd);
                         return true;
                     }

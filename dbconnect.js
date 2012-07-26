@@ -18,26 +18,56 @@ var UsersSchema = new Schema({
 
 var usersModelCons = dbConnection.model('users', UsersSchema);
 
+UsersSchema.pre('save', function(next) {
+    if (!validatePresenceOf(this.name)) {
+      next(new Error('Invalid data'));
+    } else {
+      next();
+    }
+});
 
-    UsersSchema.pre('save', function(next) {
-        next();
-    });
+var userModel = function(){
+    this.model = usersModelCons;
 
-    var userModel = function(){
-        this.model = usersModelCons;
+    this.findItems = function(query, callback){
+        this.model.find(query, callback);
+    };
 
-        this.findItems = function(query, callback){
-            this.model.find(query, callback);
-        };
+    this.saveItem = function(data,callback){
+        var user = new this.model(data);
+        if(user){
+            user.save(function(err, data){
+            if(err){
+                    callback('save failed');
+                    return;
+                }else{
+                    callback(null, data.name + ' saved');
+                }
 
-        this.saveItem = function(data, callback){
-            console.log(data);
-            var user = new Schema(data);
+            });
+        }else{
+            callback('wrong data');
+        }
+
+    }
+}
+
+exports.usersModel = new userModel;
+
+
+/*
+
+        this.saveItem = function(data,model,callback){
+            var user = new model(data);
+            console.log(user);
             if(user){
-                user.save(function(err){
+                user.save(function(err, data){
                 if(err){
                         callback('save failed');
                         return;
+                    }else{
+                        console.log(data);
+                        callback('data'+ data);
                     }
 
                 });
@@ -46,12 +76,6 @@ var usersModelCons = dbConnection.model('users', UsersSchema);
             }
 
         }
-    }
-
-exports.usersModel = new userModel;
-
-
-/*
 
 var usersSchema = new Schema({
 	name: String,
