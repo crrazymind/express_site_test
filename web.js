@@ -4,8 +4,7 @@
 * -------------------------------------------------------------------------------------------------
 * include any modules you will use through out the file
 **/
-console.log('_____________________________________________________')
-console.log(new Date());
+
 var express = require('express')
   , less = require('less')
   , fs = require('fs')
@@ -393,5 +392,5 @@ io.sockets.on('connection', function(socket) {
 
 everyauth.helpExpress(app);
 app.listen(process.env.PORT || 3000);
-console.log("Express server listening on port %d in %s mode", app.address().port, app.settings.env);
+console.log("Express server started on ", new Date());
 
