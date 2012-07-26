@@ -1,8 +1,12 @@
 {
-  "name": "WebMatrixExpressStarter",
-  "version": "0.1.0",
-  "author": "The WebMatrix Team <webmatrix@microsoft.com>",
-  "description": "A complete boilerplate for building node applications on Windows Azure (or wherever)",
+  "name": "ExpressStarterServer",
+  "version": "0.5.0",
+  "subdomain": "express_starter",
+  "author": "crazymind",
+  "description": "some sample func built on express",
+  "scripts": {
+    "start": "web.js"
+  },
   "contributors": [ 
     {
       "name": "me",
@@ -15,7 +19,7 @@
     "url": "https://github.com/my-crazymind/express_site_test.git"
   },
   "keywords": [
-    "azure",
+    "node",
     "boilerplate",
     "express"
   ],
