@@ -1,5 +1,6 @@
 node_modules
 uploads
+public/user_uploads
 .c9revisions
 server.js.logs
 server.js.debug
