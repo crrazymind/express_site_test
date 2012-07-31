@@ -11,30 +11,57 @@ var Store = function(name) {
 // Load the application once the DOM is ready, using `jQuery.ready`:
 $(function(){
 
-  // Todo Model
+  // Model
   // ----------
 
-  // Our basic **Todo** model has `title`, `order`, and `done` attributes.
   var t_Model = Backbone.Model.extend({
 
-    // Default attributes for the todo item.
+    // Default attributes for the item.
     defaults: function() {
       return {
-        title: "empty todo...",
-        order: t_ModelInstance.nextOrder(),
-        done: false
-      };
+          title: "empty task",
+          duration: 0,
+          cost:0,
+          eta:'1/1/12',
+          link:'http://google.com',
+          done: false
+        }
+      },
+/*
+ defaults: function() {
+      return {
+        'task_default':{
+          title: "empty task",
+          duration: 0,
+          cost:0,
+          eta:'1/1/12',
+          link:'http://google.com',
+          done: false
+        },
+        'task_default2':{
+          title: "empty task",
+          duration: 0,
+          cost:0,
+          eta:'1/1/12',
+          link:'http://google.com',
+          done: false
+        }
+      }
     },
 
+*/
     // Ensure that each todo created has `title`.
     initialize: function() {
+
       if (!this.get("title")) {
         this.set({"title": this.defaults.title});
+        console.log(this.get('title'));
       }
     },
 
     // Toggle the `done` state of this todo item.
     toggle: function() {
+      console.log('toggle');
       this.save({done: !this.get("done")});
     },
 
@@ -42,17 +69,17 @@ $(function(){
     clear: function() {
       this.destroy();
     }
-
   });
 
-  // Todo Collection
-  // ---------------
 
-  // The collection of t_ModelInstance is backed by *localStorage* instead of a remote
-  // server.
+  // Collection
+  // ---------------
+  // The collection from remote server.
   var t_Collection = Backbone.Collection.extend({
 
     // Reference to this collection's model.
+
+    //model: Backbone.Model.extend({urlRoot : '/task_source'}),
     model: t_Model,
 
     url : '/task_source',
@@ -61,6 +88,7 @@ $(function(){
 
     // Filter down the list of all todo items that are finished.
     done: function() {
+      console.log('collection done', this);
       return this.filter(function(todo){ return todo.get('done'); });
     },
 
@@ -84,10 +112,9 @@ $(function(){
 
   });
 
-  // Create our global collection of **t_ModelInstance**.
+  // Create global collection
   var t_ModelInstance = new t_Collection;
-
-  // Todo Item View
+  // Single Item View
   // --------------
 
   // The DOM element for a todo item...
@@ -97,27 +124,43 @@ $(function(){
     tagName:  "li",
 
     // Cache the template function for a single item.
-    template: _.template(item_template),
+    template: _.template($('#item-template').html()),
 
     // The DOM events specific to an item.
     events: {
       "click .toggle"   : "toggleDone",
       "dblclick .view"  : "edit",
       "click a.destroy" : "clear",
+      "mouseenter" : "hover",
+      "mouseleave" : "hoverOut",
       "keypress .edit"  : "updateOnEnter",
       "blur .edit"      : "close"
     },
 
     // The t_View listens for changes to its model, re-rendering. Since there's
-    // a one-to-one correspondence between a **Todo** and a **t_View** in this
+    // a one-to-one correspondence between a **model** and a **t_View** in this
     // app, we set a direct reference on the model for convenience.
     initialize: function() {
+      console.log('view initialize model: ', this.model);
       this.model.bind('change', this.render, this);
       this.model.bind('destroy', this.remove, this);
     },
-
+    hover : function(){
+      this.input.css('background-color', '#f00')
+    },
+    hoverOut : function(){
+      this.input.css('background-color', '#fff')
+    },
     // Re-render the titles of the todo item.
     render: function() {
+      /*var data = this.model.toJSON();
+      for(var _i in data){
+        this.$el.html(this.template(data[_i]));
+      }*/
+     /* this.model.toJSON().each(function(){
+        console.log($(this));
+      });*/
+      console.log('view render model: ', this.model);
       this.$el.html(this.template(this.model.toJSON()));
       this.$el.toggleClass('done', this.model.get('done'));
       this.input = this.$('.edit');
@@ -139,6 +182,7 @@ $(function(){
     close: function() {
       var value = this.input.val();
       if (!value) this.clear();
+      console.log('model: ', this.model);
       this.model.save({title: value});
       this.$el.removeClass("editing");
     },
@@ -155,10 +199,9 @@ $(function(){
 
   });
 
-  // The Application
+  // The Application View
   // ---------------
 
-  // Our overall **AppView** is the top-level piece of UI.
   var AppView = Backbone.View.extend({
 
     // Instead of generating a new element, bind to the existing skeleton of
@@ -166,7 +209,7 @@ $(function(){
     el: $("#todoapp"),
 
     // Our template for the line of statistics at the bottom of the app.
-    statsTemplate: _.template(stats_template),
+    statsTemplate: _.template($('#stats-template').html()),
 
     // Delegated events for creating new items, and clearing completed ones.
     events: {
@@ -187,7 +230,6 @@ $(function(){
       t_ModelInstance.bind('reset', this.addAll, this);
       t_ModelInstance.bind('all', this.render, this);
 
-
       this.footer = this.$('footer');
       this.main = $('#main');
 
@@ -198,11 +240,11 @@ $(function(){
     // of the app doesn't change.
     render: function() {
       
-      console.log(t_ModelInstance);
+      console.log('app render: ', t_ModelInstance);
       var done = t_ModelInstance.done().length;
       var remaining = t_ModelInstance.remaining().length;
-      
-      console.log(this.footer);
+
+
       if (t_ModelInstance.length) {
         this.main.show();
         this.footer.show();
@@ -219,11 +261,13 @@ $(function(){
     // appending its element to the `<ul>`.
     addOne: function(todo) {
       var view = new t_View({model: todo});
-      this.$("#todo-list").append(view.render().el);
+      console.log('view: ', view)
+      //this.$("#todo-list").append(view.render().el);
     },
 
     // Add all items in the **t_ModelInstance** collection at once.
     addAll: function() {
+      ////console.log('addall', t_ModelInstance);
       t_ModelInstance.each(this.addOne);
     },
 

@@ -9,9 +9,23 @@ section(class="main-content")
 	div(class="taskpanel")
 	div#todoapp
 		header
-			input(type="checkbox",id="#toggle-all")
+			input(type="text",id="new-todo",placeholder="What needs to be done?")
+			input(type="checkbox",id="toggle-all")
 		div#main
-			input#new-todo
 		ul#todo-list
 		footer
             
+|  <script type="text/template" id="item-template">
+|    <div class="view">
+|      <input class="toggle" type="checkbox" <%= done ? 'checked="checked"' : '' %> />
+|      <label><%= title %></label>
+|      <a class="destroy"></a>
+|    </div>
+|    <input class="edit" type="text" value="<%= title %>" />
+|  </script>
+
+|  <script type="text/template" id="stats-template">
+|    <% if (done) { %>
+|    <% } %>
+|    <div class="todo-count"><b><%= remaining %></b> <%= remaining == 1 ? 'item' : 'items' %> left</div>
+|  </script>
