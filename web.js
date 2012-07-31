@@ -302,7 +302,9 @@ function resultHandler(err, res){
         usersModel.findItems({}, saveUserHandler);
     }
 }
+
 var usersList;
+app.usersList = usersList;
 function saveUserHandler(err, res){
     if(err){
         console.log(err);
