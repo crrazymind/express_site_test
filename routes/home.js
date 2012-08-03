@@ -58,6 +58,7 @@ module.exports = function(app)
     var dataSep = {
         "task0": {
             "title": "empty task from model",
+            "id" : 0,
             "duration": 0,
             "cost": 0,
             "eta": "1/1/12",
@@ -66,6 +67,7 @@ module.exports = function(app)
         },
         "task1": {
             "title": "empty task1",
+            "id" : 1,
             "duration": 0,
             "cost": 0,
             "eta": "1/1/12",
@@ -74,6 +76,7 @@ module.exports = function(app)
         },
         "task2": {
             "title": "empty task2",
+            "id" : 2,
             "duration": 0,
             "cost": 0,
             "eta": "1/1/12",
@@ -82,6 +85,7 @@ module.exports = function(app)
         },
         "task3": {
             "title": "empty task3",
+            "id" : 3,
             "duration": 0,
             "cost": 0,
             "eta": "1/1/12",
@@ -90,6 +94,7 @@ module.exports = function(app)
         },
         "task4": {
             "title": "empty task4",
+            "id" : 4,
             "duration": 0,
             "cost": 0,
             "eta": "1/1/12",
@@ -101,14 +106,21 @@ module.exports = function(app)
     app.get('/task_source', function(req, res)
     {
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.write(JSON.stringify(data));
+        res.write(JSON.stringify(dataSep));
         res.end();
     });
     app.post('/task_source', function(req, res)
     {
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        if(req.body) data = req.body;
-        res.write(JSON.stringify(data));
+        //if(req.body) data = req.body;
+        res.write(JSON.stringify(dataSep));
+        res.end();
+    });
+    app.put('/task_source/123', function(req, res)
+    {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        //if(req.body) data = req.body;
+        res.write(JSON.stringify(dataSep));
         res.end();
     });
 }

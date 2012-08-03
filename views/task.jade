@@ -29,3 +29,13 @@ section(class="main-content")
 |    <% } %>
 |    <div class="todo-count"><b><%= remaining %></b> <%= remaining == 1 ? 'item' : 'items' %> left</div>
 |  </script>
+
+
+|	<script type="text/template" id="my_template">
+|   	<div class="view">
+|    		<div class="item"><%= title %></div>
+|    		<div class="item"><%= duration %></div>
+|    		<div class="item"><%= cost %></div>
+|    		<div class="item"><a href="<%= link %>"><%= link %></a></div>
+|    	</div>
+|	</script>
