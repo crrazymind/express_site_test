@@ -32,10 +32,14 @@ section(class="main-content")
 
 
 |	<script type="text/template" id="my_template">
-|   	<div class="view">
-|    		<div class="item"><%= title %></div>
-|    		<div class="item"><%= duration %></div>
-|    		<div class="item"><%= cost %></div>
-|    		<div class="item"><a href="<%= link %>"><%= link %></a></div>
+|		<div class="view">
+|			<input class="id" type="hidden" value="<%= id %>" />
+|			<div class="item title"><div class="ttl-holder"><%= title %></div></div>
+|			<div class="item duration"><%= duration %></div>
+|    		<div class="item cost"><%= cost %></div>
+|    		<div class="item eta"><%= eta %></div>
+|    		<div class="item link"><a href="<%= link %>"><%= link %></a></div>
+|			<button type="button" class="edit">edit</button>
+|			<button type="button" class="save">save</button>
 |    	</div>
 |	</script>
