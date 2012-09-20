@@ -556,7 +556,7 @@ a.twitter {
 .message-info {
 	border: none;
 }
-#todoapp{
+.app{
 	border: solid #000;
 	border-width: 1px 0 0;
 }
@@ -577,18 +577,38 @@ a.twitter {
 	vertical-align: middle;	
 }
 .view .title{
-	width: 200px;
+	width: 35%;
 }
+.view .cost,
+.view .eta,
 .view .duration{
-	width: 10px;
+	width: 5%;
+	text-align: center;
+	overflow: hidden;
 }
-.view .cost{
-	width: 10px;
+.view .buttons{
+	width: 15%;
+	float: right;
 }
-.view .title{
-	width: 200px;
+.view .link{
+	width: 20%;
+}
+.view .item input{
+	width: 100%;
 }
 .view button{
 	height: 30px;
+	width: 40%;
 	vertical-align: middle;
+	float: right;
+	padding: 0;
+}
+.new-item-wrapper{
+	width: 100%;
+	overflow: hidden;
+	margin: 0 0 20px;
+}
+.view .submit-task{
+	width: 80px;
+	margin: 0 5px 0 0;
 }

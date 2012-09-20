@@ -30,7 +30,20 @@ section(class="main-content")
 |    <div class="todo-count"><b><%= remaining %></b> <%= remaining == 1 ? 'item' : 'items' %> left</div>
 |  </script>
 
-
+|	<script type="text/template" id="task_header_template">
+|		<div class="view">
+|			<div class="item title">title</div>
+|			<div class="item duration">duration</div>
+|    		<div class="item cost">cost</div>
+|    		<div class="item eta">eta</div>
+|    		<div class="item link">link</div>
+|    	</div>
+|	</script>
+|	<script type="text/template" id="submit-btm-tpl">
+|		<div class="view">
+|			<button type="button" class="submit-task">submit</button>
+|    	</div>
+|	</script>
 |	<script type="text/template" id="my_template">
 |		<div class="view">
 |			<input class="id" type="hidden" value="<%= id %>" />
@@ -39,7 +52,9 @@ section(class="main-content")
 |    		<div class="item cost"><%= cost %></div>
 |    		<div class="item eta"><%= eta %></div>
 |    		<div class="item link"><a href="<%= link %>"><%= link %></a></div>
-|			<button type="button" class="edit">edit</button>
-|			<button type="button" class="save">save</button>
+|			<div class="item buttons">
+|				<button type="button" class="edit">done</button>
+|				<button type="button" class="save">save</button>
+|			</div>
 |    	</div>
 |	</script>
