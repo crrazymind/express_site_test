@@ -103,8 +103,11 @@ module.exports = function(app)
 		}
 	}
 	
-	var in_memory_data = dataSep;
-
+	//this.in_memory_data = dataSep;
+	console.log('get tl: ', app.in_memory_data);
+	if(!app.in_memory_data){
+		app.in_memory_data = {};
+	}
 	function updateList(in_memory_data, newData){
 		for (var i in newData) {
 			in_memory_data[i] = newData[i];
@@ -115,14 +118,14 @@ module.exports = function(app)
 	app.get('/task_source', function(req, res)
 	{
 		res.writeHead(200, { 'Content-Type': 'application/json' });
-		console.log(in_memory_data);
-		res.write(JSON.stringify(in_memory_data));
+		console.log(app.in_memory_data);
+		res.write(JSON.stringify(app.in_memory_data));
 		res.end();
 	});
 	app.post('/task_source', function(req, res)
 	{
 		res.writeHead(200, { 'Content-Type': 'application/json' });
-		if(req.body) res.write(JSON.stringify(updateList(in_memory_data, req.body))); 
+		if(req.body) res.write(JSON.stringify(updateList(app.in_memory_data, req.body))); 
 		else res.write('no data');
 		res.end();
 	});

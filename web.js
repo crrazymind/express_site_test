@@ -287,12 +287,37 @@ require('./routes/global')(app);
 
 
 
+//var Task = app.Task = mongoose.model('tasklist');
+
+/*setInterval(function(){
+    taskList.findItems({title: new Date().getTime()}, taskListLoader);
+},1000)*/
+
+
+
+//taskList.saveItem({"task4": {"title": "empty task4","id" : 4,"duration": 0,"cost": 0,"eta": "1/1/12","link": "http://google.com","done": false}}, taskListLoader);
+
+function taskListLoader(err, res){
+    if(err){
+        console.log(err);
+    }else{
+        app.in_memory_data = res;
+        console.log('web tasklist: ', res);
+        //updateUserStack(usersList);
+        // console.log('connection test: ', res);
+    }
+}
 /* db connection */
 var usersModel = require('./dbconnect').usersModel;
-var User = app.User = mongoose.model('users');
+//var User = app.User = mongoose.model('tasklist');
 usersModel.findItems({}, saveUserHandler);
 
-var datauser = {"name" : "ololo-"+ (new Date().getTime())+"@q.q","pwd" : "52b87702a857139cef9acc3e3bb6fb60", "salt" : "5244e472bdd9aa365d8f7eabb14b1a98","id" : 10}
+var taskListDB = require('./dbconnect2').taskList;
+taskListDB.findItems({}, taskListLoader);
+
+var datauser = {"name" : "ololo-"+ (new Date().getTime())+"@q.q","pwd" : new Date().getTime(), "salt" : new Date().getTime(),"id" : (new Date().getTime())}
+
+
 
 
 function resultHandler(err, res){
@@ -310,8 +335,8 @@ function saveUserHandler(err, res){
         console.log(err);
     }else{
         usersList = res;
+
         updateUserStack(usersList);
-        // console.log('connection test: ', res);
     }
 }
 
