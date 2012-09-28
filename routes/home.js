@@ -32,28 +32,7 @@ module.exports = function(app)
 	{
 		res.render('task', { title: 'task page.  ' })
 	});
-	var dataOld = {
-		"glossary": {
-			"title": "example glossary",
-			"GlossDiv": {
-				"title": "S",
-				"GlossList": {
-					"GlossEntry": {
-						"ID": "SGML",
-						"SortAs": "SGML",
-						"GlossTerm": "Standard Generalized Markup Language",
-						"Acronym": "SGML",
-						"Abbrev": "ISO 8879:1986",
-						"GlossDef": {
-							"para": "A meta-markup language, used to create markup languages such as DocBook.",
-							"GlossSeeAlso": ["GML", "XML"]
-						},
-						"GlossSee": "markup"
-					}
-				}
-			}
-		}
-	}
+
 	var data = {"task0":{"title":"empty task from model","duration":0,"cost":0,"eta":"1/1/12","link":"http://google.com","done":false},"task1":{"title":"empty task1","duration":0,"cost":0,"eta":"1/1/12","link":"http://google.com","done":false},"task2":{"title":"empty task2","duration":0,"cost":0,"eta":"1/1/12","link":"http://google.com","done":false},"task3":{"title":"empty task3","duration":0,"cost":0,"eta":"1/1/12","link":"http://google.com","done":false},"task4":{"title":"empty task4","duration":0,"cost":0,"eta":"1/1/12","link":"http://google.com","done":false}};
 	var dataSep = {
 		"task0": {
@@ -109,31 +88,51 @@ module.exports = function(app)
 		app.in_memory_data = {};
 	}
 	function updateList(in_memory_data, newData){
-		for (var i in newData) {
-			in_memory_data[i] = newData[i];
+		//in_memory_data.push(newData);
+		//console.log(in_memory_data['title'])
+		for (var i = in_memory_data.length - 1; i >= 0; i--) {
+			if(in_memory_data[i]['_id'] == newData['_id']) {
+				for (var _i in newData){
+					in_memory_data[i][_i] = newData[_i];
+				}
+					//in_memory_data[i] = newData;
+			}
 		};
 		return in_memory_data;
 	}
-
+	function addToList(in_memory_data, newData){
+		in_memory_data.push(newData);
+		return in_memory_data;
+	}
 	app.get('/task_source', function(req, res)
 	{
 		res.writeHead(200, { 'Content-Type': 'application/json' });
-		console.log(app.in_memory_data);
 		res.write(JSON.stringify(app.in_memory_data));
 		res.end();
 	});
 	app.post('/task_source', function(req, res)
 	{
 		res.writeHead(200, { 'Content-Type': 'application/json' });
-		if(req.body) res.write(JSON.stringify(updateList(app.in_memory_data, req.body))); 
+
+		if(req.body) {
+			app.in_memory_data = updateList(app.in_memory_data, req.body);
+			console.log('updated on post: ', app.in_memory_data);
+			res.write(JSON.stringify(app.in_memory_data));
+		}
 		else res.write('no data');
 		res.end();
 	});
-	app.put('/task_source/123', function(req, res)
+	app.put('/task_source/*', function(req, res)
 	{
 		res.writeHead(200, { 'Content-Type': 'application/json' });
-		//if(req.body) data = req.body;
-		res.write(JSON.stringify(dataSep));
-		res.end();
+		//delete req.body['_id'];
+		//if(req.body) app.in_memory_data = addToList(app.in_memory_data, req.body);
+
+		function dbPutCallback(data, err){
+			if( typeof data ==  Object) app.in_memory_data = addToList(app.in_memory_data, data);
+			res.write(JSON.stringify(app.in_memory_data));
+			res.end();
+		}
+		app.addTaskDb(req.body, dbPutCallback);
 	});
 }

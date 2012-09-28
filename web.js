@@ -303,21 +303,27 @@ function taskListLoader(err, res){
     }else{
         app.in_memory_data = res;
         console.log('web tasklist: ', res);
-        //updateUserStack(usersList);
-        // console.log('connection test: ', res);
     }
 }
 /* db connection */
-var usersModel = require('./dbconnect').usersModel;
-//var User = app.User = mongoose.model('tasklist');
+var dbconnect = require('./dbconnect');
+var usersModel = dbconnect.usersModel;
 usersModel.findItems({}, saveUserHandler);
 
-var taskListDB = require('./dbconnect2').taskList;
+var taskListDB = dbconnect.taskList;
 taskListDB.findItems({}, taskListLoader);
 
 var datauser = {"name" : "ololo-"+ (new Date().getTime())+"@q.q","pwd" : new Date().getTime(), "salt" : new Date().getTime(),"id" : (new Date().getTime())}
 
+var taskitem = {title: 'task1', id : 0, duration: 1, cost: 15, eta: '1/23/11',link: 'http://localhost2',done: false}
 
+app.addTaskDb = function(data, callback){
+    if(data._id == ""){
+        delete data._id;
+    }
+    taskListDB.saveItem(data, callback);
+}
+//taskListDB.saveItem(taskitem, taskListLoader);
 
 
 function resultHandler(err, res){

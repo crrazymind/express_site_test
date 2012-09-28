@@ -11,6 +11,7 @@ body {
 	font-family: "Segoe UI", Verdana, Helvetica, Sans-Serif;
 	margin: 0;
 	padding: 0;
+	width:100%;
 }
 a:link,
 a:visited,
@@ -31,6 +32,8 @@ hgroup,
 nav,
 section {
 	display: block;
+	width: 100%;
+	position: relative;
 }
 .float-left {
 	float: left;
@@ -559,6 +562,7 @@ a.twitter {
 .app{
 	border: solid #000;
 	border-width: 1px 0 0;
+	min-width: 540px;
 }
 .view{
 	width: 100%;
@@ -589,6 +593,7 @@ a.twitter {
 .view .buttons{
 	width: 15%;
 	float: right;
+	min-width: 100px;
 }
 .view .link{
 	width: 20%;
@@ -599,6 +604,7 @@ a.twitter {
 .view button{
 	height: 30px;
 	width: 40%;
+	min-width: 50px;
 	vertical-align: middle;
 	float: right;
 	padding: 0;
@@ -611,4 +617,9 @@ a.twitter {
 .view .submit-task{
 	width: 80px;
 	margin: 0 5px 0 0;
+}
+.view .add-one{
+	width: 30px;
+	margin: 0 5px 0 0;
+	min-width: 30px;
 }
