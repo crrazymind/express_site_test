@@ -4,14 +4,55 @@ $(document).ready(function(){
 		urlRoot: "http://localhost:5000/api",
 		idAttribute: '_id',
 		silent : true,
-		sync: function(method, model, options){  
-			options.timeout = 10000;  
-			options.dataType = "jsonp";
-			//options.dataKeyword = "data";
-			options.dataKeyword = false;
-			return Backbone.sync(method, model, options);
-		}  
+		sync: ownSync,
+		initialize: function(){
+			console.log("model initialize");
+		}
 	});
+
+	var methodMap = {
+		'create': 'POST',
+		'update': 'PUT',
+		'delete': 'DELETE',
+		'read':   'GET'
+	};
+
+	var getValue = function(object, prop) {
+		if (!(object && object[prop])) return null;
+		return _.isFunction(object[prop]) ? object[prop]() : object[prop];
+	};
+
+	function ownSync(method, model, options){
+		options.timeout = 10000;  
+		options.dataType = "jsonp";
+		options.dataKeyword = "items";
+
+	    var type = methodMap[method];
+
+	    options || (options = {});
+
+	    var params = {type: type, dataType: 'jsonp'};
+	    if (!options.url) {
+	      params.url = getValue(model, 'url') || urlError();
+	    }
+
+	    // Ensure that we have the appropriate request data.
+	    if (!options.data && model && (method == 'create' || method == 'update')) {
+	      params.contentType = 'application/json';
+	      params.data = JSON.stringify(model.toJSON());
+	    }
+	    
+	    if((typeof params.data != "undefined") && options.dataKeyword) {
+	    	params.data = options.dataKeyword + "=" + params.data;
+	    	params.data += "&_method=" + method;
+	    }else{
+	    	params.data = "_method=" + method;
+	    }
+	    
+	    return $.ajax(_.extend(params, options));
+	
+	//return Backbone.sync(method, model, options);
+	}
 
 
 	tasksCollection = Backbone.Collection.extend({
@@ -20,13 +61,9 @@ $(document).ready(function(){
 		url : "http://localhost:5000/api",
 		initialize: function() {
 			this.name = "tasksCollection";
+			console.log("Collection initialize");
 		},
-		sync: function(method, model, options){  
-			options.timeout = 10000;  
-			options.dataType = "jsonp";
-			options.dataKeyword = "data";  
-			return Backbone.sync(method, model, options);
-		}  
+		sync: ownSync
 	});
 
 	var Inst = new tasksCollection();
@@ -51,18 +88,7 @@ $(document).ready(function(){
 			_.bindAll(this, "saveSuccess", "saveError", "reset");
 			Inst.bind('reset', this.reset); // binds method to the collection .fetch sucess callback
 			Inst.bind('error', this.fetchError);
-
 			Inst.fetch();
-			
-			/*var data = Inst.fetch({
-				error: function(model, response) {
-					console.log('fetch error');
-				},
-				success: function(model, response)  {
-					_this.model.items = response;
-					myView.render();
-				}
-			});*/
 			//console.log('args: ', [].splice.call(arguments,0));
 		},
 		fetchError: function(model, response) {
@@ -182,14 +208,4 @@ $(document).ready(function(){
 	window.tasksModel = new TasksModel();
 	var generateTaskTable = new TaskGenerator({model: tasksModel});
 	$("#todoapp").html(generateTaskTable.el);
-
-	/*$.ajax({
-		url : 'http://morning-coast-3645.herokuapp.com/api/',
-		type : 'POST',
-		//dataType : 'jsonp',
-		data : 'ololo',
-		success : function(){
-			alert(1);
-		}
-	})*/
 });
