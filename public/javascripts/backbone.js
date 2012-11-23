@@ -1313,8 +1313,8 @@
   // Useful when interfacing with server-side languages like **PHP** that make
   // it difficult to read the body of `PUT` requests.
   Backbone.sync = function(method, model, options) {
-    var type = methodMap[method];
 
+    var type = methodMap[method];
     // Default options, unless specified.
     options || (options = {});
 
@@ -1329,6 +1329,7 @@
     // Ensure that we have the appropriate request data.
     if (!options.data && model && (method == 'create' || method == 'update')) {
       params.contentType = 'application/json';
+
       params.data = JSON.stringify(model.toJSON());
     }
 
@@ -1356,6 +1357,9 @@
     }
 
     // Make the request, allowing the user to override any Ajax options.
+    if(options.dataKeyword && (type === 'PUT' || type === 'POST')){
+      params.data = options.dataKeyword + "=" + params.data
+    }
     return $.ajax(_.extend(params, options));
   };
 

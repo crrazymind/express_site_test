@@ -1,16 +1,32 @@
 $(document).ready(function(){
 	TasksModel = Backbone.Model.extend({
-		urlRoot: "/task_source",
+		//urlRoot: "//morning-coast-3645.herokuapp.com/api",
+		urlRoot: "http://localhost:5000/api",
 		idAttribute: '_id',
-		silent : true
+		silent : true,
+		sync: function(method, model, options){  
+			options.timeout = 10000;  
+			options.dataType = "jsonp";
+			//options.dataKeyword = "data";
+			options.dataKeyword = false;
+			return Backbone.sync(method, model, options);
+		}  
 	});
+
 
 	tasksCollection = Backbone.Collection.extend({
 		model: TasksModel,
-		url : '/task_source',
+		//url : 'http://morning-coast-3645.herokuapp.com/api',
+		url : "http://localhost:5000/api",
 		initialize: function() {
 			this.name = "tasksCollection";
-		}
+		},
+		sync: function(method, model, options){  
+			options.timeout = 10000;  
+			options.dataType = "jsonp";
+			options.dataKeyword = "data";  
+			return Backbone.sync(method, model, options);
+		}  
 	});
 
 	var Inst = new tasksCollection();
@@ -57,12 +73,15 @@ $(document).ready(function(){
 			this.render();
 		},
 		render: function(){
-			var items = this.model.items;
+			var items = this.model.items[0].items;
 			this.itemsCollection = $();
+
 			if(!items) return false;
 			$(this.el).append(_.template($('#task_header_template').html()));
 
-			for(var _i in items){
+			
+			//for(var _i in items){
+			for(var _i=0; _i < items.length; _i++){
 				var item_html = $(this.template(items[_i]));
 				item_html.data('saveBtn', item_html.find('button.save'));
 				this.itemsCollection = this.itemsCollection.add(item_html);
@@ -160,7 +179,17 @@ $(document).ready(function(){
 		}
 	});
 
-	var tasksModel = new TasksModel();
+	window.tasksModel = new TasksModel();
 	var generateTaskTable = new TaskGenerator({model: tasksModel});
 	$("#todoapp").html(generateTaskTable.el);
+
+	/*$.ajax({
+		url : 'http://morning-coast-3645.herokuapp.com/api/',
+		type : 'POST',
+		//dataType : 'jsonp',
+		data : 'ololo',
+		success : function(){
+			alert(1);
+		}
+	})*/
 });

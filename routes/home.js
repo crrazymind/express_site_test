@@ -87,19 +87,7 @@ module.exports = function(app)
 	if(!app.in_memory_data){
 		app.in_memory_data = {};
 	}
-	function updateList(in_memory_data, newData){
-		//in_memory_data.push(newData);
-		//console.log(in_memory_data['title'])
-		for (var i = in_memory_data.length - 1; i >= 0; i--) {
-			if(in_memory_data[i]['_id'] == newData['_id']) {
-				for (var _i in newData){
-					in_memory_data[i][_i] = newData[_i];
-				}
-					//in_memory_data[i] = newData;
-			}
-		};
-		return in_memory_data;
-	}
+
 	function addToList(in_memory_data, newData){
 		in_memory_data.push(newData);
 		return in_memory_data;
@@ -113,10 +101,14 @@ module.exports = function(app)
 	app.post('/task_source', function(req, res)
 	{
 		res.writeHead(200, { 'Content-Type': 'application/json' });
-
-		if(req.body) {
-			app.in_memory_data = updateList(app.in_memory_data, req.body);
-			console.log('updated on post: ', app.in_memory_data);
+		if(req.body.length > 0) {
+			for (var i = in_memory_data.length - 1; i >= 0; i--) {
+				if(in_memory_data[i]['_id'] == req.body['_id']) {
+					for (var _i in req.body){
+						in_memory_data[i][_i] = req.body[_i];
+					}
+				}
+			};
 			res.write(JSON.stringify(app.in_memory_data));
 		}
 		else res.write('no data');
@@ -129,10 +121,30 @@ module.exports = function(app)
 		//if(req.body) app.in_memory_data = addToList(app.in_memory_data, req.body);
 
 		function dbPutCallback(data, err){
-			if( typeof data ==  Object) app.in_memory_data = addToList(app.in_memory_data, data);
+			//if( typeof data ==  Object) app.in_memory_data = addToList(app.in_memory_data, data, req);
+			console.log(data);
 			res.write(JSON.stringify(app.in_memory_data));
 			res.end();
 		}
-		app.addTaskDb(req.body, dbPutCallback);
+		updateList(app.in_memory_data, req.body, dbPutCallback);
 	});
+
+	function updateList(in_memory_data, newData, callback){
+		var _F = false;
+		for (var i = in_memory_data.length - 1; i >= 0; i--) {
+			if(in_memory_data[i]['_id'] == newData['_id']) {
+				_F = true;
+				for (var _i in newData){
+					in_memory_data[i][_i] = newData[_i];
+				}
+			}
+		};
+		if(!_F){
+			app.addTaskDb(newData, callback);
+			return true;
+		}else{
+			return in_memory_data;
+		}
+	}
+
 }

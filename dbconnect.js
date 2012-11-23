@@ -3,7 +3,7 @@ var mongoose = require("mongoose"),
 	Schema = mongoose.Schema,
 	ObjectId = Schema.ObjectId;
 
-var dbConnection = mongoose.createConnection(nconf.get('mongo:url'));
+var dbConnection = mongoose.createConnection(nconf.get('mongo:prod_url'));
 
 function validatePresenceOf(value) {
   return value && value.length;
@@ -70,7 +70,7 @@ var userModel = function(){
 
 
 var taskList = function(){
-    this.model = dbConnection.model('tasklist', taskListShema);
+    this.model = dbConnection.model('tasklists', taskListShema);
     
     this.findItems = function(query, callback){
         this.model.find(query, callback);
