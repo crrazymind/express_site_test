@@ -1,13 +1,25 @@
+taskList = window.taskList = {
+	name : "global taskList namespace"
+}
 $(document).ready(function(){
 	TasksModel = Backbone.Model.extend({
-		//urlRoot: "//morning-coast-3645.herokuapp.com/api",
-		urlRoot: "http://localhost:5000/api",
 		idAttribute: '_id',
 		silent : true,
 		sync: ownSync,
 		initialize: function(){
 			console.log("model initialize");
-		}
+		},
+		defaults: function() {
+          return {
+          	title: 'task title some other ',
+          	_id : '',
+          	duration: 0,
+          	cost: 0,
+          	eta: '0/1/0',
+          	link: 'http://localhost',
+          	done: false
+          };
+      	}
 	});
 
 	var methodMap = {
@@ -66,7 +78,8 @@ $(document).ready(function(){
 		sync: ownSync
 	});
 
-	var Inst = new tasksCollection();
+
+	
 
 	TaskGenerator = Backbone.View.extend({
 		template: _.template($('#my_template').html()),
@@ -99,14 +112,11 @@ $(document).ready(function(){
 			this.render();
 		},
 		render: function(){
+			console.log(this.model);
 			var items = this.model.items[0].items;
 			this.itemsCollection = $();
-
 			if(!items) return false;
 			$(this.el).append(_.template($('#task_header_template').html()));
-
-			
-			//for(var _i in items){
 			for(var _i=0; _i < items.length; _i++){
 				var item_html = $(this.template(items[_i]));
 				item_html.data('saveBtn', item_html.find('button.save'));
@@ -117,7 +127,7 @@ $(document).ready(function(){
 			return this;
 		},
 		actualizeModel : function(e){
-			console.log(e);
+			console.log("actualizeModel ", e);
 		},
 		checkNumber: function(e){
 			if(!e.currentTarget.firstChild || e.currentTarget.firstChild.length <= 0) return;
@@ -126,11 +136,11 @@ $(document).ready(function(){
 			if(val) val = val.join('')*1;
 			$(e.currentTarget).children().val(val ? val : 0)
 		},
-		addTaskRow: function addTaskRow(e){
-			$(this.template(this.rawData)).insertBefore($(e.currentTarget).closest('.view'));
-			console.log(this.model.toJSON());
+		addTaskRow: function (e){
+			$(this.template(this.model.defaults())).insertBefore($(e.currentTarget).closest('.view'));
+			console.log("addTaskRow", this.model.changed);
 		},
-		calcCost: function calcCost(e){
+		calcCost: function (e){
 			$(e.currentTarget).closest('.view').find('.cost').text($(e.currentTarget).find('input').val()*15);		
 		},
 		showDatapicker: function(e){
@@ -205,7 +215,9 @@ $(document).ready(function(){
 		}
 	});
 
-	window.tasksModel = new TasksModel();
-	var generateTaskTable = new TaskGenerator({model: tasksModel});
+	//window.tasksModel = new TasksModel();
+	//var generateTaskTable = new TaskGenerator({model: tasksModel});
+	var Inst = new tasksCollection();
+	var generateTaskTable = new TaskGenerator();
 	$("#todoapp").html(generateTaskTable.el);
 });
