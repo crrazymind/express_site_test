@@ -1,7 +1,9 @@
 taskList = $.taskList = {
 	name : "global taskList namespace"
 }
+//console.log('args: ', [].splice.call(arguments,0));
 $(document).ready(function(){
+
 	$.taskList.AppModel = Backbone.RelationalModel.extend({
 		idAttribute: '_id',
 		silent : true,
@@ -10,24 +12,35 @@ $(document).ready(function(){
 			console.log("application model initialize");
 		}
 	});
-
+	
 	$.taskList.ItemModel = Backbone.RelationalModel.extend({
+		idAttribute: '_id',
+		sync: ownSync,
+		urlRoot : "http://localhost:5000/api",
+		validate : function(item){
+			if (typeof this.id == "object") this.id = this.id.$oid;
+		}
+	});
+
+	$.taskList.NewItemModel = Backbone.RelationalModel.extend({
 		idAttribute: '_id',
 		initialize: function(){
 			console.log("item model initialize");
 		},
 		defaults: function() {
-          return {
-          	title: 'task title some other ',
-          	_id : '',
-          	duration: 0,
-          	cost: 0,
-          	eta: '0/1/0',
-          	link: 'http://localhost',
-          	done: false
-          };
-      	}
+		  return {
+			title: 'task title some other ',
+			_id : '',
+			duration: 0,
+			cost: 0,
+			eta: '0/1/0',
+			link: 'http://localhost',
+			done: false
+		  };
+		}
 	});
+
+
 
 	var methodMap = {
 		'create': 'POST',
@@ -38,6 +51,7 @@ $(document).ready(function(){
 
 	var getValue = function(object, prop) {
 		if (!(object && object[prop])) return null;
+		//if(prop == "url" && _.isFunction(object[prop])) console.log(object[prop]())
 		return _.isFunction(object[prop]) ? object[prop]() : object[prop];
 	};
 
@@ -45,23 +59,24 @@ $(document).ready(function(){
 		options.timeout = 10000;  
 		options.dataType = "jsonp";
 		options.dataKeyword = "items";
-	    var type = methodMap[method];
-	    options || (options = {});
-	    var params = {type: type, dataType: 'jsonp'};
-	    if (!options.url) {
-	      params.url = getValue(model, 'url') || urlError();
-	    }
-	    if (!options.data && model && (method == 'create' || method == 'update')) {
-	      params.contentType = 'application/json';
-	      params.data = JSON.stringify(model.toJSON());
-	    }
-	    if((typeof params.data != "undefined") && options.dataKeyword) {
-	    	params.data = options.dataKeyword + "=" + params.data;
-	    	params.data += "&_method=" + method;
-	    }else{
-	    	params.data = "_method=" + method;
-	    }
-	    return $.ajax(_.extend(params, options));
+		var type = methodMap[method];
+		options || (options = {});
+		var params = {type: type, dataType: 'jsonp'};
+
+		if (!options.url) {
+			params.url = getValue(model, 'url') || urlError();
+		}
+		if (!options.data && model && (method == 'create' || method == 'update')) {
+		  params.contentType = 'application/json';
+		  params.data = JSON.stringify(model.toJSON());
+		}
+		if((typeof params.data != "undefined") && options.dataKeyword) {
+			params.data = options.dataKeyword + "=" + params.data;
+			params.data += "&_method=" + method;
+		}else{
+			params.data = "_method=" + method;
+		}
+		return $.ajax(_.extend(params, options));
 	}
 
 
@@ -77,27 +92,80 @@ $(document).ready(function(){
 
 	$.taskList.itemThing = Backbone.View.extend({
 		template: _.template($('#my_template').html()),
-		model : $.taskList.ItemModel,
+		model : new $.taskList.ItemModel,
 		el: '<div class="item_hold"></div>',
-		initialize: function() {
-	      this.model.bind('change', this.render, this);
-	      this.model.bind('destroy', this.remove, this);
-	    },
-	    render: function() {
-	      //this.$el.html(this.template(this.model.toJSON()));
-	      //this.$el.toggleClass('done', this.model.get('done'));
-	      //this.input = this.$('.edit');
-	      return this;
-	    }
-		/*
-			for(var _i=0; _i < items.length; _i++){
-				var item_html = $(this.template(items[_i]));
-				item_html.data('saveBtn', item_html.find('button.save'));
-				this.itemsCollection = this.itemsCollection.add(item_html);
-				$(this.el).append(item_html);
-			}
+		events: {
+			"click .save": "submitModel",
+			"dblclick .item": "changeTtl",
+			"blur .item input": "itemEditComplete"
+		},
+		initialize: function(data) {
+			_.bindAll(this, 'render', 'render_add');
+			this.model.bind('reset', this.render);
+			this.model.bind('change', this.render_add); 
+			this.model.bind('destroy', this.remove);
+			this.model.set(data);
+		},
+		render_add : function(add){
+			console.log('render_add: ', add);
+		},
+		render: function(data) {
+			this.$el.html(this.template(this.model.toJSON()));
+			return this;
+		},
+		submitModel: function(e){
+			this.model.save({success: this.saveSuccess, error: this.saveError});
+		},
+		saveSuccess: function(model, response){
+			console.log('ЗБС bro!');
+		},
 
-		*/
+		saveError: function(model, response){
+			console.log('smth went ololo!11');
+		},
+		changeTtl: function(e){
+			var el = $(e.currentTarget);
+			if(el.hasClass('eta') || el.hasClass('edit') || el.hasClass('buttons')) return;
+			var val = el.text();
+			el.empty();
+			var edit = el.find('input');
+			if(edit.length > 0){
+				edit.val(val);
+				edit.show();
+			}else{
+				edit = $('<input type="text" value="'+val+'"/>');
+				el.append(edit);
+			}
+			edit.focus();
+		},
+		parseData : function (el) {
+			var data = {};
+			var num = el.find('._id').val();
+			var arr = ["duration","cost","eta","link","done","_id","title"];
+			/*data["task"+ num] = {
+				"id": num
+			};
+			for (var i = arr.length - 1; i >= 0; i--) {
+				data["task"+ num][arr[i]] = el.find('.'+arr[i]).text();
+			};*/
+			for (var i = arr.length - 1; i >= 0; i--) {
+				data[arr[i]] = el.find('.' + arr[i]).text();
+			};
+			if(data['done'] == "") data['done'] = false;
+			data['_id'] = num;
+			return data;
+		},
+		itemEditComplete: function(e){
+			var el = $(e.currentTarget).closest('.item');
+			var hold = $(e.currentTarget).closest('.view');
+			if(el && el.hasClass('cost') || el.hasClass('eta') || el.hasClass('duration')) this.checkNumber(e);
+			var val = $(e.target).val();
+			el.text(val);
+			$(e.target).remove();
+			var data = this.parseData(hold);
+			console.log(data);
+			this.model.set(data);
+		}
 	});
 	
 
@@ -120,12 +188,10 @@ $(document).ready(function(){
 		initialize: function(){
 			var _this = this;
 			this.name = "TaskGenerator";
-			this.rawData = {title: 'task title some other ', _id : '', duration: 0, cost: 0, eta: '0/1/0', link: 'http://localhost', done: false};
 			_.bindAll(this, "saveSuccess", "saveError", "reset");
-			this.model.bind('reset', this.reset); // binds method to the collection .fetch sucess callback
+			this.model.bind('reset', this.reset);
 			this.model.bind('error', this.fetchError);
 			this.model.fetch();
-			//console.log('args: ', [].splice.call(arguments,0));
 		},
 		fetchError: function(model, response) {
 			console.log('fetch error ', response);
