@@ -69,7 +69,8 @@ $(document).ready(function(){
 		template: _.template($('#my_template').html()),
 		el: '<div class="app"></div>',
 		events: {
-			"click .submit-task": "navigate"
+			"click .submit-task": "navigate",
+			"click .add-one": "addNew"
 		},
 		initialize: function(){
 			var _this = this;
@@ -98,8 +99,19 @@ $(document).ready(function(){
 			return this;
 		},
 		addChild: function(data){
-			var one = new $.taskList.itemThing(data);
+			var itemModel = new $.taskList.ItemModel(data, this);
+			var one = new $.taskList.itemThing(data, itemModel);
 			$(this.el).append(one.render().el);
+		},
+		addNew : function(){
+			var newModel = new $.taskList.NewItemModel({}, this);
+			newModel.validate();
+			var one = new $.taskList.itemThing({}, newModel);
+			var newOne = $(one.render().el);
+			newOne.insertBefore($(this.el).find('.view:last'));
+			//newModel.viewLink.removeEl.hide();
+			newOne.hide();
+			newOne.slideDown();
 		},
 		navigate: function(e){
 			console.log(this.model);
@@ -119,23 +131,18 @@ $(document).ready(function(){
 		idAttribute: '_id',
 		sync: ownSync,
 		urlRoot : "http://localhost:5000/api",
-		initialize : function(data){
-			console.log(data);
+		initialize : function(data, view){
 			this.modelId = $.taskList.globalId++;
-			console.log(this.modelId);
+			this.viewLink = view;
 		},
 		validate : function(item){
+			if(this._id == "") this.id = "new";
 			if (typeof this.id == "object") this.id = this.id.$oid;
 		}
 	});
 
-	$.taskList.NewItemModel = Backbone.Model.extend({
-		idAttribute: '_id',
-		initialize: function(){
-			console.log("new item model initialize");
-			this.modelId = $.taskList.globalId++;
-		},
-		defaults: function() {
+	$.taskList.NewItemModel = $.taskList.ItemModel.extend({
+		defaults: function(){
 		  return {
 			title: 'task title some other ',
 			_id : '',
@@ -146,7 +153,7 @@ $(document).ready(function(){
 			done: false
 		  };
 		}
-	});
+	})
 
 	$.taskList.itemThing = Backbone.View.extend({
 		template: _.template($('#my_template').html()),
@@ -158,37 +165,52 @@ $(document).ready(function(){
 			"change .duration": "calcCost",
 			"blur .item input": "itemEditComplete"
 		},
-		initialize: function(data) {
-			this.model = new $.taskList.ItemModel(data);
+		initialize: function(data, model) {
+			this.model = model;
+			//_.bindAll(this, "saveSuccess", "saveError", "reset");
 			_.bindAll(this, 'render');
-			this.model.bind('change', this.modelChangeCallback); 
-			this.model.bind('destroy', this.removeElement);
+			this.model.on('destroy', this.unrender, this);
+			this.model.on('change', this.modelChangeCallback, this);
 		},
 		modelChangeCallback : function(add){
-			console.log(this);
-			if(this.hasChanged){
-				console.log("changed");
+			if(this.model.hasChanged){
+				this.submitEl.fadeIn();
 			}
 			//console.log('render_add: ', [].splice.call(arguments,0));
 		},
 		remove : function(e){
-			var choise = true;
-			var choise = confirm("are you sure?");	
-			if(choise) {
+			if(this.model.attributes._id == ""){
+				this.$el.slideUp();
+				this.model.id = null
+				this.model.destroy();
+				console.log(this.model);
+				return;
+			}
+			var choise = confirm("are you sure?");
+			if(choise){
 				this.model.validate();
 				this.model.destroy({success: this.removeSuccess, error: this.removeError});
-				this.$el.slideUp();
 			}
 		},
-		removeElement : function(e){},
+		unrender : function(){
+			var root = this;
+			this.$el.slideUp(600, function(){
+				root.$el.remove();
+			});
+		},
+		removeElement : function(e){
+			this.unrender();
+		},
 		removeSuccess: function(model, response){},
 		removeError: function(model, response){
-			console.log("wtf" , this);
+			console.log("wtf?11 - removeError" , this);
 		},
 		render: function(data) {
-			this.$el.html(this.template(this.model.toJSON()));
-			this.submitEl = this.$el.find(".save");
-			this.removeEl = this.$el.find(".remove");
+			var elCode = $(this.template(this.model.toJSON()));
+			this.$el.append(elCode);
+			this.submitEl = this.model.viewLink.submitEl = elCode.find(".save");
+			this.removeEl = this.model.viewLink.removeEl= elCode.find(".remove");
+			this.submitEl.hide();
 			return this;
 		},
 		submitModel: function(e){
@@ -196,6 +218,7 @@ $(document).ready(function(){
 		},
 		saveSuccess: function(model, response){
 			console.log('ЗБС bro!');
+			this.viewLink.submitEl.fadeOut();
 		},
 		saveError: function(model, response){
 			console.log('smth went ololo!11');
@@ -219,12 +242,6 @@ $(document).ready(function(){
 			var data = {};
 			var num = el.find('._id').val();
 			var arr = ["duration","cost","eta","link","done","_id","title"];
-			/*data["task"+ num] = {
-				"id": num
-			};
-			for (var i = arr.length - 1; i >= 0; i--) {
-				data["task"+ num][arr[i]] = el.find('.'+arr[i]).text();
-			};*/
 			for (var i = arr.length - 1; i >= 0; i--) {
 				data[arr[i]] = el.find('.' + arr[i]).text();
 			};
@@ -282,3 +299,22 @@ $(window).load(function(){
     // Start Backbone history a necessary step for bookmarkable URL's
     Backbone.history.start();
 })
+	/*$.taskList.NewItemModel = Backbone.Model.extend({
+		idAttribute: '_id',
+		initialize: function(data, view){
+			console.log("new item model initialize");
+			this.viewLink = view;
+			this.modelId = $.taskList.globalId++;
+		},
+		defaults: function(){
+		  return {
+			title: 'task title some other ',
+			_id : '',
+			duration: 0,
+			cost: 0,
+			eta: '0/1/0',
+			link: 'http://localhost',
+			done: false
+		  };
+		}
+	});*/
