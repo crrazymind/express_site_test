@@ -20,13 +20,13 @@ html
           p(class="site-title")
             a(href="/") you are here.
         div(class="float-right")
-          section#login
-            ul
+          section(class="navbar-form", id="login")
+            ul(id="menu", class="nav nav-pills")
             -if(!everyauth.loggedIn)
                 li
-                    a(href="/login") Log in
+                    a(href="/login", class="btn btn-primary") Log in
                 li
-                    a(href="/register") Register
+                    a(href="/register", class="btn btn-primary") Register
             -else
                 -if(everyauth.facebook)
                     li Welcome !{everyauth.facebook.user.first_name} !{everyauth.facebook.user.last_name}!
@@ -37,7 +37,7 @@ html
                 li 
                     a(href="/logout") Logout
           nav
-            ul#menu
+            ul(id="menu", class="nav nav-pills")
               li 
                 a(href="/") Home
               li 

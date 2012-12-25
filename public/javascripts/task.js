@@ -1,6 +1,7 @@
 taskList = $.taskList = {
 	name : "global taskList namespace",
-	app : {}
+	app : {},
+	globalId  : 0
 }
 //console.log('args: ', [].splice.call(arguments,0));
 $(document).ready(function(){
@@ -19,7 +20,7 @@ $(document).ready(function(){
 	};
 
 	function ownSync(method, model, options){
-		options.timeout = 10000;  
+		options.timeout = 2000;  
 		options.dataType = "jsonp";
 		options.dataKeyword = "items";
 		var type = methodMap[method];
@@ -49,10 +50,9 @@ $(document).ready(function(){
 		silent : true,
 		sync: ownSync,
 		initialize: function(){
-			console.log("application model initialize");
-		},
-		destroy: function(){
-			console.log("model destroy")
+			this.name = "AppModel";
+			this.modelId = $.taskList.globalId++;
+			//console.log("application model initialize");
 		}
 	});
 	
@@ -61,7 +61,6 @@ $(document).ready(function(){
 		url : "http://localhost:5000/api",
 		initialize: function(model, options) {
 			this.name = "tasksCollection";
-			console.log("Collection initialize");
 		},
 		sync: ownSync
 	});
@@ -115,12 +114,16 @@ $(document).ready(function(){
 		}
 	});
 
-		/* single item */
-
+	/* single item */
 	$.taskList.ItemModel = Backbone.Model.extend({
 		idAttribute: '_id',
 		sync: ownSync,
 		urlRoot : "http://localhost:5000/api",
+		initialize : function(data){
+			console.log(data);
+			this.modelId = $.taskList.globalId++;
+			console.log(this.modelId);
+		},
 		validate : function(item){
 			if (typeof this.id == "object") this.id = this.id.$oid;
 		}
@@ -129,7 +132,8 @@ $(document).ready(function(){
 	$.taskList.NewItemModel = Backbone.Model.extend({
 		idAttribute: '_id',
 		initialize: function(){
-			console.log("item model initialize");
+			console.log("new item model initialize");
+			this.modelId = $.taskList.globalId++;
 		},
 		defaults: function() {
 		  return {
@@ -146,42 +150,53 @@ $(document).ready(function(){
 
 	$.taskList.itemThing = Backbone.View.extend({
 		template: _.template($('#my_template').html()),
-		model : new $.taskList.ItemModel,
 		el: '<div class="item_hold"></div>',
 		events: {
 			"click .save": "submitModel",
 			"dblclick .item": "changeTtl",
 			"click .remove": "remove",
+			"change .duration": "calcCost",
 			"blur .item input": "itemEditComplete"
 		},
 		initialize: function(data) {
+			this.model = new $.taskList.ItemModel(data);
 			_.bindAll(this, 'render');
-			this.model.bind('reset', this.render);
-			this.model.bind('change', this.render_add); 
-			this.model.bind('destroy', this.remove);
-			this.model.set(data);
+			this.model.bind('change', this.modelChangeCallback); 
+			this.model.bind('destroy', this.removeElement);
 		},
-		render_add : function(add){
+		modelChangeCallback : function(add){
+			console.log(this);
+			if(this.hasChanged){
+				console.log("changed");
+			}
 			//console.log('render_add: ', [].splice.call(arguments,0));
 		},
 		remove : function(e){
-			console.log(this.model)
-			//this.destroyModel();
+			var choise = true;
+			var choise = confirm("are you sure?");	
+			if(choise) {
+				this.model.validate();
+				this.model.destroy({success: this.removeSuccess, error: this.removeError});
+				this.$el.slideUp();
+			}
+		},
+		removeElement : function(e){},
+		removeSuccess: function(model, response){},
+		removeError: function(model, response){
+			console.log("wtf" , this);
 		},
 		render: function(data) {
 			this.$el.html(this.template(this.model.toJSON()));
+			this.submitEl = this.$el.find(".save");
+			this.removeEl = this.$el.find(".remove");
 			return this;
 		},
 		submitModel: function(e){
-			this.model.save({success: this.saveSuccess, error: this.saveError});
-		},
-		destroyModel: function(e){
-			this.model.destroy({success: this.saveSuccess, error: this.saveError});
+			if(this.model.hasChanged()) this.model.save({success: this.saveSuccess, error: this.saveError});
 		},
 		saveSuccess: function(model, response){
 			console.log('ЗБС bro!');
 		},
-
 		saveError: function(model, response){
 			console.log('smth went ololo!11');
 		},
@@ -217,6 +232,16 @@ $(document).ready(function(){
 			data['_id'] = num;
 			return data;
 		},
+		checkNumber: function(e){
+			if(!e.currentTarget || e.currentTarget.length <= 0) return;
+			var reg = /([0-9])/gi;
+			var val = $(e.currentTarget).val().match(reg);
+			if(val) val = val.join('')*1;
+			$(e.currentTarget).val(val ? val : 0)
+		},
+		calcCost: function (e){
+			$(e.currentTarget).closest('.view').find('.cost').text($(e.currentTarget).find('input').val()*15);		
+		},
 		itemEditComplete: function(e){
 			var el = $(e.currentTarget).closest('.item');
 			var hold = $(e.currentTarget).closest('.view');
@@ -225,7 +250,6 @@ $(document).ready(function(){
 			el.text(val);
 			$(e.target).remove();
 			var data = this.parseData(hold);
-			console.log(data);
 			this.model.set(data);
 		}
 	});

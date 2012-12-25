@@ -15,16 +15,15 @@ body {
 }
 a:link,
 a:visited,
-a:active,
-a:hover {
-	color: #333;
+a:active{
+	color: #0088cc;
 	outline: none;
 	padding-left: 3px;
 	padding-right: 3px;
 	text-decoration: underline;
 }
 a:hover {
-	background-color: #c7d1d6;
+	text-decoration: none !important;
 }
 header,
 footer,
@@ -121,6 +120,7 @@ select{
 }
 footer {
 	clear: both;
+	border-top: 2px solid #999; 
 	background-color: #e2e2e2;
 	font-size: .8em;
 	height: 100px;
@@ -149,6 +149,7 @@ footer {
 }
 #login a {
 	background-color: #d3dce0;
+	color: #FFF;
 	margin-left: 10px;
 	margin-right: 3px;
 	padding: 2px 3px;
@@ -168,19 +169,7 @@ footer {
 }
 /* menu
 ----------------------------------------------------------*/
-ul#menu {
-	font-size: 1.3em;
-	font-weight: 600;
-	margin: 0;
-	text-align: right;
-}
-ul#menu li {
-	display: inline;
-	list-style: none;
-	padding-left: 15px;
-}
 ul#menu li a {
-	background: none;
 	color: #999;
 	text-decoration: none;
 }
@@ -434,16 +423,6 @@ a.twitter {
 	margin: 0;
 	padding: 0;
 	}
-	#login a {
-	background: none;
-	color: #999;
-	font-weight: 600;
-	margin: 2px;
-	padding: 0;
-	}
-	#login a:hover {
-	color: #333;
-	}
 	/* menu */
 	nav {
 	margin-bottom: 5px;
@@ -452,6 +431,8 @@ a.twitter {
 	margin: 0;
 	padding: 0;
 	text-align: center;
+	width:50%;
+	margin: 0 auto;
 	}
 	ul#menu li {
 	margin: 0;
@@ -581,8 +562,9 @@ a.twitter {
 }
 .view .item{
 	float: left;
-	padding: 3px 5px 0 5px;
-	height: 27px;
+	padding: 8px 5px 0 5px;
+	height: 33px;
+	box-sizing: border-box;
 	vertical-align: middle;
 	text-transform: capitalize;
 }
@@ -603,12 +585,14 @@ a.twitter {
 	width: 15%;
 	float: right;
 	min-width: 100px;
+	padding: 3px 5px 0 5px;
 }
 .view .link{
 	width: 20%;
 }
 .view .item input{
 	width: 100%;
+	box-sizing: border-box;
 }
 .view button{
 	height: 30px;
@@ -617,6 +601,7 @@ a.twitter {
 	vertical-align: middle;
 	float: right;
 	padding: 0;
+	margin-left: 3px;
 }
 .new-item-wrapper{
 	width: 100%;
