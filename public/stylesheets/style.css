@@ -559,23 +559,32 @@ a.twitter {
 .message-info {
 	border: none;
 }
-.app{
-	border: solid #000;
-	border-width: 1px 0 0;
+.app {
+	border: solid #999;
+	border-width: 2px 0 0 2px;
 	min-width: 540px;
+	background: #FFF;
+	border-radius: 6px;
+	box-sizing: border-box;
+	-webkit-box-shadow:  3px 3px 3px 3px #999999;   
+    box-shadow:  3px 3px 3px 3px #999999;
 }
-.view{
+.view {
 	width: 100%;
 	overflow: hidden;
 	border: solid #000;
-	border-width: 0 1px 1px;
+	border-width: 0 0px 1px;
 	padding: 5px 0;
+}
+.app .navigation-bar {
+	border-bottom:none;
 }
 .view .item{
 	float: left;
-	padding: 3px 5px 0;
+	padding: 3px 5px 0 5px;
 	height: 27px;
 	vertical-align: middle;
+	text-transform: capitalize;
 }
 .view .ttl-holder{
 	vertical-align: middle;	

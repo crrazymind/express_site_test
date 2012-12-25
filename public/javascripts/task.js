@@ -1,46 +1,9 @@
 taskList = $.taskList = {
-	name : "global taskList namespace"
+	name : "global taskList namespace",
+	app : {}
 }
 //console.log('args: ', [].splice.call(arguments,0));
 $(document).ready(function(){
-
-	$.taskList.AppModel = Backbone.RelationalModel.extend({
-		idAttribute: '_id',
-		silent : true,
-		sync: ownSync,
-		initialize: function(){
-			console.log("application model initialize");
-		}
-	});
-	
-	$.taskList.ItemModel = Backbone.RelationalModel.extend({
-		idAttribute: '_id',
-		sync: ownSync,
-		urlRoot : "http://localhost:5000/api",
-		validate : function(item){
-			if (typeof this.id == "object") this.id = this.id.$oid;
-		}
-	});
-
-	$.taskList.NewItemModel = Backbone.RelationalModel.extend({
-		idAttribute: '_id',
-		initialize: function(){
-			console.log("item model initialize");
-		},
-		defaults: function() {
-		  return {
-			title: 'task title some other ',
-			_id : '',
-			duration: 0,
-			cost: 0,
-			eta: '0/1/0',
-			link: 'http://localhost',
-			done: false
-		  };
-		}
-	});
-
-
 
 	var methodMap = {
 		'create': 'POST',
@@ -79,15 +42,106 @@ $(document).ready(function(){
 		return $.ajax(_.extend(params, options));
 	}
 
+	/** application general **/
 
+	$.taskList.AppModel = Backbone.Model.extend({
+		idAttribute: '_id',
+		silent : true,
+		sync: ownSync,
+		initialize: function(){
+			console.log("application model initialize");
+		},
+		destroy: function(){
+			console.log("model destroy")
+		}
+	});
+	
 	$.taskList.tasksCollection = Backbone.Collection.extend({
 		model: $.taskList.AppModel,
 		url : "http://localhost:5000/api",
-		initialize: function() {
+		initialize: function(model, options) {
 			this.name = "tasksCollection";
 			console.log("Collection initialize");
 		},
 		sync: ownSync
+	});
+
+	$.taskList.TaskGenerator = Backbone.View.extend({
+		template: _.template($('#my_template').html()),
+		el: '<div class="app"></div>',
+		events: {
+			"click .submit-task": "navigate"
+		},
+		initialize: function(){
+			var _this = this;
+			this.name = "TaskGenerator view";
+			_.bindAll(this, "saveSuccess", "saveError", "reset");
+			this.model.bind('reset', this.reset);
+			this.model.bind('error', this.fetchError);
+			this.model.fetch();
+		},
+		fetchError: function(model, response) {
+			console.log('fetch error ', response);
+		},
+		reset: function(){
+			this.model.items = this.model.toJSON();
+			this.render();
+		},
+		render: function(){
+			var items = this.model.items[0].items;
+			this.itemsCollection = $();
+			if(!items) return false;
+			$(this.el).append(_.template($('#task_header_template').html()));
+			for(var _i=0; _i < items.length; _i++){
+				this.addChild(items[_i]);
+			}
+			$(this.el).append(_.template($('#submit-btm-tpl').html()));
+			return this;
+		},
+		addChild: function(data){
+			var one = new $.taskList.itemThing(data);
+			$(this.el).append(one.render().el);
+		},
+		navigate: function(e){
+			console.log(this.model);
+			$.taskList.AppRouter.navigate("/selected");
+			//this.model.save({success: this.saveSuccess, error: this.saveError});
+		},
+		saveSuccess: function(model, response){
+			console.log('save callback');
+		},
+		saveError: function(model, response){
+			console.log('smth went ololo!11');
+		}
+	});
+
+		/* single item */
+
+	$.taskList.ItemModel = Backbone.Model.extend({
+		idAttribute: '_id',
+		sync: ownSync,
+		urlRoot : "http://localhost:5000/api",
+		validate : function(item){
+			if (typeof this.id == "object") this.id = this.id.$oid;
+		}
+	});
+
+	$.taskList.NewItemModel = Backbone.Model.extend({
+		idAttribute: '_id',
+		initialize: function(){
+			console.log("item model initialize");
+		},
+		defaults: function() {
+		  return {
+			title: 'task title some other ',
+			_id : '',
+			duration: 0,
+			cost: 0,
+			eta: '0/1/0',
+			link: 'http://localhost',
+			done: false
+		  };
+		}
 	});
 
 	$.taskList.itemThing = Backbone.View.extend({
@@ -97,17 +151,22 @@ $(document).ready(function(){
 		events: {
 			"click .save": "submitModel",
 			"dblclick .item": "changeTtl",
+			"click .remove": "remove",
 			"blur .item input": "itemEditComplete"
 		},
 		initialize: function(data) {
-			_.bindAll(this, 'render', 'render_add');
+			_.bindAll(this, 'render');
 			this.model.bind('reset', this.render);
 			this.model.bind('change', this.render_add); 
 			this.model.bind('destroy', this.remove);
 			this.model.set(data);
 		},
 		render_add : function(add){
-			console.log('render_add: ', add);
+			//console.log('render_add: ', [].splice.call(arguments,0));
+		},
+		remove : function(e){
+			console.log(this.model)
+			//this.destroyModel();
 		},
 		render: function(data) {
 			this.$el.html(this.template(this.model.toJSON()));
@@ -115,6 +174,9 @@ $(document).ready(function(){
 		},
 		submitModel: function(e){
 			this.model.save({success: this.saveSuccess, error: this.saveError});
+		},
+		destroyModel: function(e){
+			this.model.destroy({success: this.saveSuccess, error: this.saveError});
 		},
 		saveSuccess: function(model, response){
 			console.log('ЗБС bro!');
@@ -167,83 +229,32 @@ $(document).ready(function(){
 			this.model.set(data);
 		}
 	});
-	
-
-	$.taskList.TaskGenerator = Backbone.View.extend({
-		template: _.template($('#my_template').html()),
-		el: '<div class="app"></div>',
-		events: {
-			"click .submit-task": "submitModel",
-		},
-		/*events: {
-			"change .duration": "calcCost",
-			"click .eta": "showDatapicker",
-			"click .add-one": "addTaskRow",
-			"dblclick .item": "changeTtl",
-			"blur .item input": "itemEditComplete",
-			"change .item": "save",
-			"click .save": "save",
-			"click .submit-task": "submitModel"
-		},*/
-		initialize: function(){
-			var _this = this;
-			this.name = "TaskGenerator";
-			_.bindAll(this, "saveSuccess", "saveError", "reset");
-			this.model.bind('reset', this.reset);
-			this.model.bind('error', this.fetchError);
-			this.model.fetch();
-		},
-		fetchError: function(model, response) {
-			console.log('fetch error ', response);
-		},
-		reset: function(){ // fetch callback / don't know if rename
-			this.model.items = this.model.toJSON();
-			this.render();
-		},
-		render: function(){
-			var items = this.model.items[0].items;
-			this.itemsCollection = $();
-			if(!items) return false;
-			$(this.el).append(_.template($('#task_header_template').html()));
-			for(var _i=0; _i < items.length; _i++){
-				this.addChild(items[_i]);
-			}
-			$(this.el).append(_.template($('#submit-btm-tpl').html()));
-			return this;
-		},
-		addChild: function(data){
-			var one = new $.taskList.itemThing(data);
-			$(this.el).append(one.render().el);
-		},
-		submitModel: function(e){
-			console.log('model save: ', this.model.toJSON());
-			console.log('model save: ', this.model);
-			this.model.save({success: this.saveSuccess, error: this.saveError});
-		},
-		/*save: function(e){
-			var _this = this;
-			setTimeout(function(){
-				var data = _this.parseData($(e.currentTarget).closest('.view'));
-				_this.model.set(data);
-			},0);
-
-			//console.log('save: ', data);
-			//this.model.save(this.parseData($(e.currentTarget).closest('.view')), {success: this.saveSuccess, error: this.saveError});
-			e.preventDefault(); // prevent the button click from posting back to the server
-		},*/
-
-		saveSuccess: function(model, response){
-			console.log('save callback');
-		},
-
-		saveError: function(model, response){
-			console.log('smth went ololo!11');
-		}
-	});
-
-	//window.AppModel = new AppModel();
-	//var generateTaskTable = new TaskGenerator({model: AppModel});
-	//var Inst = new tasksCollection();
-	var generateTaskTable = new $.taskList.TaskGenerator({model: new $.taskList.tasksCollection});
-	$("#todoapp").html(generateTaskTable.el);
 });
+
+$(window).load(function(){
+	//http://localhost:3000/task/#/views/10
+    var AppRouter = Backbone.Router.extend({
+        routes: {
+            "views/:id": "getView",
+            "selected": "renderSelected",
+            "*actions": "defaultRoute"
+        }
+    });
+    // Instantiate the router
+    var app_router = $.taskList.app.globalAppRouter = new AppRouter;
+    app_router.on('route:getView', function (id) {
+        // Note the variable in the route definition being passed in here
+        console.log('model save: ', $.taskList.AppRouter);
+        alert( "Get post number " + id );   
+    });
+    app_router.on('route:renderSelected', function (id) {
+        alert( "selected" );   
+    });
+    app_router.on('route:defaultRoute', function (actions) {
+    	var appModel = $.taskList.app.appModel = new $.taskList.tasksCollection;
+    	var indexApp = $.taskList.app.globalView = new $.taskList.TaskGenerator({model: appModel});
+		$("#todoapp").html(indexApp.el);
+    });
+    // Start Backbone history a necessary step for bookmarkable URL's
+    Backbone.history.start();
+})
