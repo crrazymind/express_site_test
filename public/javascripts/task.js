@@ -1,10 +1,54 @@
 taskList = $.taskList = {
 	name : "global taskList namespace",
+	utils : {},
 	app : {},
+	updateQueue : {
+		stack : [],
+		flush : function(){
+			for (var i = this.stack.length - 1; i >= 0; i--) {
+				//console.log(this.stack[i]);
+			};
+		}
+	},
+	waitQueue : {},
 	globalId  : 0
 }
 //console.log('args: ', [].splice.call(arguments,0));
+
 $(document).ready(function(){
+
+//http://stackoverflow.com/a/7607853
+var BaseView = $.taskList.utils.BaseView = function (options) {
+    this.bindings = [];
+    Backbone.View.apply(this, [options]);
+};
+_.extend(BaseView.prototype, Backbone.View.prototype, {
+    bindTo: function (model, ev, callback) {
+        model.bind(ev, callback, this);
+        this.bindings.push({ model: model, ev: ev, callback: callback });
+    },
+    unbindFromAll: function () {
+        _.each(this.bindings, function (binding) {
+            binding.model.unbind(binding.ev, binding.callback);
+        });
+        this.bindings = [];
+    },
+    dispose: function () {
+        this.unbindFromAll(); // this will unbind all events that this view has bound to 
+        this.unbind(); // this will unbind all listeners to events from this view. This is probably not necessary because this view will be garbage collected.
+        this.remove(); // uses the default Backbone.View.remove() method which removes this.el from the DOM and removes DOM events.
+    }
+});
+BaseView.extend = Backbone.View.extend;
+
+/**
+	var SourceView = $.taskList.utils.SourceView = BaseView.extend({
+	    initialize: function(){
+	        if(this.model) this.bindTo(this.model, 'change', this.render);
+	        if(this.collection) this.bindTo(this.collection, 'reset', this.doSomething);
+	    }
+	});
+*/
 
 	var methodMap = {
 		'create': 'POST',
@@ -65,7 +109,8 @@ $(document).ready(function(){
 		sync: ownSync
 	});
 
-	$.taskList.TaskGenerator = Backbone.View.extend({
+	//$.taskList.TaskGenerator = Backbone.View.extend({
+	$.taskList.TaskGenerator = $.taskList.utils.BaseView.extend({
 		template: _.template($('#my_template').html()),
 		el: '<div class="app"></div>',
 		events: {
@@ -73,23 +118,16 @@ $(document).ready(function(){
 			"click .add-one": "addNew"
 		},
 		initialize: function(){
-			var _this = this;
 			this.name = "TaskGenerator view";
-			_.bindAll(this, "saveSuccess", "saveError", "reset");
-			this.model.bind('reset', this.reset);
-			this.model.bind('error', this.fetchError);
+			this.bindTo(this.model, 'reset', this.render);
+			this.bindTo(this.model, 'error', this.fetchError);
 			this.model.fetch();
 		},
 		fetchError: function(model, response) {
 			console.log('fetch error ', response);
 		},
-		reset: function(){
-			this.model.items = this.model.toJSON();
-			this.render();
-		},
 		render: function(){
-			var items = this.model.items[0].items;
-			this.itemsCollection = $();
+			var items = this.model.toJSON()[0].items;
 			if(!items) return false;
 			$(this.el).append(_.template($('#task_header_template').html()));
 			for(var _i=0; _i < items.length; _i++){
@@ -100,16 +138,15 @@ $(document).ready(function(){
 		},
 		addChild: function(data){
 			var itemModel = new $.taskList.ItemModel(data, this);
-			var one = new $.taskList.itemThing(data, itemModel);
+			var one = new $.taskList.itemThing({data:data, model:itemModel});
 			$(this.el).append(one.render().el);
 		},
 		addNew : function(){
 			var newModel = new $.taskList.NewItemModel({}, this);
 			newModel.validate();
-			var one = new $.taskList.itemThing({}, newModel);
+			var one = new $.taskList.itemThing({model: newModel});
 			var newOne = $(one.render().el);
 			newOne.insertBefore($(this.el).find('.view:last'));
-			//newModel.viewLink.removeEl.hide();
 			newOne.hide();
 			newOne.slideDown();
 		},
@@ -132,6 +169,7 @@ $(document).ready(function(){
 		sync: ownSync,
 		urlRoot : "http://localhost:5000/api",
 		initialize : function(data, view){
+			this.name = "ItemModel model";
 			this.modelId = $.taskList.globalId++;
 			this.viewLink = view;
 		},
@@ -144,62 +182,67 @@ $(document).ready(function(){
 	$.taskList.NewItemModel = $.taskList.ItemModel.extend({
 		defaults: function(){
 		  return {
-			title: 'task title some other ',
+			title: 'New task',
 			_id : '',
 			duration: 0,
 			cost: 0,
-			eta: '0/1/0',
-			link: 'http://localhost',
+			eta: new Date().toUTCString(),
+			link: '',
 			done: false
 		  };
 		}
 	})
 
-	$.taskList.itemThing = Backbone.View.extend({
+	$.taskList.itemThing = $.taskList.utils.BaseView.extend({
 		template: _.template($('#my_template').html()),
 		el: '<div class="item_hold"></div>',
 		events: {
 			"click .save": "submitModel",
 			"dblclick .item": "changeTtl",
-			"click .remove": "remove",
+			"click .remove": "removeHandler",
 			"change .duration": "calcCost",
 			"blur .item input": "itemEditComplete"
 		},
-		initialize: function(data, model) {
-			this.model = model;
-			//_.bindAll(this, "saveSuccess", "saveError", "reset");
-			_.bindAll(this, 'render');
-			this.model.on('destroy', this.unrender, this);
-			this.model.on('change', this.modelChangeCallback, this);
+		initialize: function(args) {
+			this.model = args.model;
+			this.timer = "";
+			this.bindTo(this.model, 'destroy', this.destroyView, this);
+			this.bindTo(this.model, 'change', this.modelChangeCallback, this);
+			this.model.viewLink = this;
 		},
 		modelChangeCallback : function(add){
 			if(this.model.hasChanged){
 				this.submitEl.fadeIn();
+				var root = this;
+				if(this.timer) clearTimeout(this.timer);
+				this.timer = setTimeout(function(){
+					root.model.viewLink.idEl.val(root.model.get("_id"));
+				},100);
 			}
 			//console.log('render_add: ', [].splice.call(arguments,0));
 		},
-		remove : function(e){
+		removeHandler : function(e){
 			if(this.model.attributes._id == ""){
 				this.$el.slideUp();
 				this.model.id = null
 				this.model.destroy();
-				console.log(this.model);
 				return;
-			}
-			var choise = confirm("are you sure?");
-			if(choise){
-				this.model.validate();
-				this.model.destroy({success: this.removeSuccess, error: this.removeError});
+			}else{
+				var choise = confirm("are you sure?");
+				if(choise){
+					this.model.validate();
+					this.model.destroy({success: this.removeSuccess, error: this.removeError});
+				}
 			}
 		},
-		unrender : function(){
+		remove : function(){
 			var root = this;
 			this.$el.slideUp(600, function(){
 				root.$el.remove();
 			});
 		},
-		removeElement : function(e){
-			this.unrender();
+		destroyView : function(e){
+			this.dispose();
 		},
 		removeSuccess: function(model, response){},
 		removeError: function(model, response){
@@ -210,18 +253,24 @@ $(document).ready(function(){
 			this.$el.append(elCode);
 			this.submitEl = this.model.viewLink.submitEl = elCode.find(".save");
 			this.removeEl = this.model.viewLink.removeEl= elCode.find(".remove");
+			this.removeEl = this.model.viewLink.idEl= elCode.find("._id");
 			this.submitEl.hide();
 			return this;
 		},
 		submitModel: function(e){
-			if(this.model.hasChanged()) this.model.save({success: this.saveSuccess, error: this.saveError});
+			if(this.model.hasChanged()) this.model.save({},{success: this.saveSuccess, error: this.saveError});
 		},
 		saveSuccess: function(model, response){
-			console.log('ЗБС bro!');
-			this.viewLink.submitEl.fadeOut();
+			model.viewLink.submitEl.fadeOut();
+			if($.taskList.updateQueue.stack[0]) {
+				model.viewLink.model.set("_id", $.taskList.updateQueue.stack[0])
+				$.taskList.updateQueue.stack.pop();
+				console.log("saveSuccess: ", model.get("_id"));
+				model.viewLink.submitEl.fadeOut();
+			}
 		},
 		saveError: function(model, response){
-			console.log('smth went ololo!11');
+			console.log('smth was ololo!11 ', response);
 		},
 		changeTtl: function(e){
 			var el = $(e.currentTarget);
@@ -281,10 +330,8 @@ $(window).load(function(){
             "*actions": "defaultRoute"
         }
     });
-    // Instantiate the router
     var app_router = $.taskList.app.globalAppRouter = new AppRouter;
     app_router.on('route:getView', function (id) {
-        // Note the variable in the route definition being passed in here
         console.log('model save: ', $.taskList.AppRouter);
         alert( "Get post number " + id );   
     });
@@ -292,11 +339,12 @@ $(window).load(function(){
         alert( "selected" );   
     });
     app_router.on('route:defaultRoute', function (actions) {
-    	var appModel = $.taskList.app.appModel = new $.taskList.tasksCollection;
-    	var indexApp = $.taskList.app.globalView = new $.taskList.TaskGenerator({model: appModel});
+    	var appCollection = $.taskList.app.appCollection = new $.taskList.tasksCollection;
+    	var indexApp = $.taskList.app.globalView = new $.taskList.TaskGenerator({model: appCollection});
+
+    	//new $.taskList.utils.SourceView({model: new $.taskList.AppModel, collection : new $.taskList.tasksCollection})
 		$("#todoapp").html(indexApp.el);
     });
-    // Start Backbone history a necessary step for bookmarkable URL's
     Backbone.history.start();
 })
 	/*$.taskList.NewItemModel = Backbone.Model.extend({
